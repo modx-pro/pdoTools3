@@ -1,3 +1,19 @@
+/**
+ * Vanilla frontend for the pdoPage snippet (ajax pagination).
+ *
+ * PHP registers this file and calls pdoPage.initialize(config).
+ * Requests go to connector.php with hash + pageId. The snippet only
+ * treats the call as ajax when X-Requested-With is XMLHttpRequest.
+ *
+ * Modes: default (click pager links), button (load more), scroll
+ * (IntersectionObserver, with a window scroll fallback).
+ *
+ * Optional hooks: pdoPage.callbacks.before / after.
+ * After a successful load the script fires CustomEvent 'pdopage:load'
+ * on document (detail: {config, response}).
+ *
+ * @file
+ */
 (function (window, document) {
     'use strict';
 
@@ -5,14 +21,32 @@
         window.pdoPage = {callbacks: {}, keys: {}, configs: {}, instances: {}};
     }
 
+    /**
+     * @param {string} selector
+     * @param {ParentNode} [root]
+     * @returns {Element|null}
+     */
     function qs(selector, root) {
         return (root || document).querySelector(selector);
     }
 
+    /**
+     * @param {string} selector
+     * @param {ParentNode} [root]
+     * @returns {Element[]}
+     */
     function qsa(selector, root) {
         return Array.from((root || document).querySelectorAll(selector));
     }
 
+    /**
+     * Read the page number from a pagination href.
+     * Missing or invalid values become 1.
+     *
+     * @param {string} href
+     * @param {string} key Query param name (usually pageVarKey).
+     * @returns {number}
+     */
     function pageFromHref(href, key) {
         try {
             const value = new URL(href, window.location.origin).searchParams.get(key);
@@ -22,13 +56,29 @@
         }
     }
 
+    /**
+     * True when el is one of the nodes matched by selector.
+     * Needed because closest() does not accept compound selectors
+     * like "#pdopage .pagination a".
+     *
+     * @param {Element} el
+     * @param {string} selector
+     * @returns {boolean}
+     */
     function matchesSelector(el, selector) {
         return qsa(selector).includes(el);
     }
 
+    /**
+     * Resolve a click target to the "load more" element, if any.
+     *
+     * @param {EventTarget|null} target
+     * @param {string} moreSelector
+     * @returns {Element|null}
+     */
     function isMoreTarget(target, moreSelector) {
         const more = qs(moreSelector);
-        if (!more) {
+        if (!more || !(target instanceof Node)) {
             return null;
         }
         if (target === more || more.contains(target)) {
@@ -37,6 +87,13 @@
         return null;
     }
 
+    /**
+     * Push the current page into the query string. Page 1 removes the key.
+     *
+     * @param {string} key
+     * @param {number|string} page
+     * @returns {void}
+     */
     function setHistory(key, page) {
         const params = new URLSearchParams(window.location.search);
         if (Number(page) === 1) {
@@ -49,6 +106,12 @@
         window.history.pushState({pdoPage: url}, '', url);
     }
 
+    /**
+     * One pdoPage block on the page (keyed by pageVarKey).
+     *
+     * @param {Object} config Config from Paginator::loadJsCss().
+     * @constructor
+     */
     function Controller(config) {
         this.config = config;
         this.key = config.pageVarKey;
@@ -60,18 +123,25 @@
         this.bound = false;
     }
 
+    /** @returns {Element|null} */
     Controller.prototype.getWrapper = function () {
         return qs(this.config.wrapper);
     };
 
+    /** @returns {Element|null} */
     Controller.prototype.getRows = function () {
         return qs(this.config.rows);
     };
 
+    /** @returns {Element|null} */
     Controller.prototype.getPagination = function () {
         return qs(this.config.pagination);
     };
 
+    /**
+     * Attach listeners once per instance.
+     * @returns {void}
+     */
     Controller.prototype.bind = function () {
         if (this.bound) {
             return;
@@ -112,6 +182,7 @@
 
             case 'scroll':
             case 'button':
+                // history off: hide the pager; history on: stick it with CSS
                 if (config.history) {
                     const pagination = this.getPagination();
                     if (pagination) {
@@ -151,6 +222,10 @@
         }
     };
 
+    /**
+     * Watch a sentinel under the rows list and load the next page.
+     * @returns {void}
+     */
     Controller.prototype.bindScroll = function () {
         const self = this;
         const rows = this.getRows();
@@ -176,6 +251,7 @@
             return;
         }
 
+        // Older browsers without IntersectionObserver
         const onScroll = function () {
             if (self.busy || self.reached) {
                 return;
@@ -193,6 +269,10 @@
         window.addEventListener('load', onScroll);
     };
 
+    /**
+     * Find the next pager link and append that page.
+     * @returns {void}
+     */
     Controller.prototype.addPage = function () {
         const key = this.key;
         const current = Number(pdoPage.keys[key] || 1);
@@ -205,6 +285,7 @@
             }
         }
         if (!next) {
+            // Nothing left: stop observing so we do not spin
             this.reached = true;
             if (this.observer && this.sentinel) {
                 this.observer.unobserve(this.sentinel);
@@ -218,6 +299,15 @@
         this.load(next.href, 'append');
     };
 
+    /**
+     * Replace element contents with HTML from the connector response.
+     * Same trust model as the old jQuery .html() path: markup is
+     * rendered by MODX chunks on the server.
+     *
+     * @param {Element|null} el
+     * @param {string} html
+     * @returns {void}
+     */
     Controller.prototype.setHtml = function (el, html) {
         if (!el) {
             return;
@@ -233,6 +323,13 @@
         el.appendChild(template.content);
     };
 
+    /**
+     * Append HTML to an element (scroll / button modes).
+     *
+     * @param {Element|null} el
+     * @param {string} html
+     * @returns {void}
+     */
     Controller.prototype.appendHtml = function (el, html) {
         if (!el || !html) {
             return;
@@ -242,6 +339,13 @@
         el.appendChild(template.content);
     };
 
+    /**
+     * POST to connector.php and update the DOM.
+     *
+     * @param {string} href Pager link used to derive the page number.
+     * @param {'replace'|'append'|'force'} [mode='replace']
+     * @returns {void}
+     */
     Controller.prototype.load = function (href, mode) {
         const self = this;
         const config = this.config;
@@ -268,6 +372,7 @@
             wrapper.classList.add('loading');
         }
 
+        // Keep other query params; drop sibling pdoPage keys from this page
         const params = new URLSearchParams(window.location.search);
         Object.keys(pdoPage.keys).forEach(function (otherKey) {
             if (otherKey !== key) {
@@ -298,6 +403,7 @@
             }
             return response.json();
         }).then(function (data) {
+            // Snippet ajax branch always includes total when there is work to show
             if (!data || !data.total) {
                 return;
             }
@@ -350,6 +456,13 @@
         });
     };
 
+    /**
+     * Entry point used by PHP frontend_init_js.
+     * One Controller per pageVarKey.
+     *
+     * @param {Object} config
+     * @returns {Controller}
+     */
     pdoPage.initialize = function (config) {
         const key = config.pageVarKey;
         if (pdoPage.instances[key]) {
@@ -365,6 +478,12 @@
         return controller;
     };
 
+    /**
+     * Public helper: load the next page for an existing instance.
+     *
+     * @param {Object} config
+     * @returns {void}
+     */
     pdoPage.addPage = function (config) {
         const controller = pdoPage.instances[config.pageVarKey];
         if (controller) {
@@ -372,6 +491,14 @@
         }
     };
 
+    /**
+     * Public helper: load a specific href for an existing instance.
+     *
+     * @param {string} href
+     * @param {Object} config
+     * @param {'replace'|'append'|'force'} [mode]
+     * @returns {void}
+     */
     pdoPage.loadPage = function (href, config, mode) {
         const controller = pdoPage.instances[config.pageVarKey];
         if (controller) {
@@ -379,6 +506,13 @@
         }
     };
 
+    /**
+     * Sync document.title with the pdoTitle snippet config, if present.
+     *
+     * @param {Object} config
+     * @param {{page?: number, pages?: number}} response
+     * @returns {void}
+     */
     pdoPage.updateTitle = function (config, response) {
         if (typeof window.pdoTitle === 'undefined') {
             return;
