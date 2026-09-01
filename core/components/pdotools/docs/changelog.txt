@@ -1,5 +1,13 @@
 Changelog for pdoTools.
 
+3.1.0-pl (01.09.2026)
+==============
+- [#315] [pdoPage] Removed jQuery dependency: single vanilla pdopage.js with fetch, URLSearchParams, CSS sticky, and IntersectionObserver.
+- [#315] [pdoPage] Removed jquery.pdopage.js and jquery.sticky.js.
+- [#315] [pdoPage] Replaced jQuery pdopage_load event with CustomEvent pdopage:load.
+- [#315] [pdoPage] pdoPage.Hash kept for custom frontend_init_js / filters (pushState query helpers).
+- [#315] [pdoPage] Sticky pagination uses CSS position:sticky (may not stick under overflow:hidden ancestors).
+
 3.0.3-pl (01.09.2026)
 ==============
 - [#302] [pdoPage] Fixed button ajaxMode, hiding the more button when there are no results, and restoring it in force mode.

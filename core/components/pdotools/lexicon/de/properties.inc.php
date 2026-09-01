@@ -159,11 +159,11 @@ $_lang['pdotools_prop_countChildren'] = 'Die genaue Anzahl der aktiven Nachkomme
 
 $_lang['pdotools_prop_ajax'] = 'Unterstützung für Ajax-Requests aktivieren.';
 $_lang['pdotools_prop_ajaxMode'] = 'Ajax-Paginierung "out of the box". Verfügbar in 3 Modi: "Default" (Standard), "Scroll" und "Button".';
-$_lang['pdotools_prop_ajaxElemWrapper'] = 'jQuery-Selektor für das Wrapper-Element, das die Ergebnisse und die Paginierung enthält.';
-$_lang['pdotools_prop_ajaxElemRows'] = 'jQuery-Selektor für das Element, das die Ergebnisse enthält.';
-$_lang['pdotools_prop_ajaxElemPagination'] = 'jQuery-Selektor für das Element, das die Paginierung enthält.';
-$_lang['pdotools_prop_ajaxElemLink'] = 'jQuery-Selector für die Paginierungs-Links.';
-$_lang['pdotools_prop_ajaxElemMore'] = 'jQuery-Selector für den "Mehr laden"-Button, wenn als ajaxMode "Button" gewählt wurde.';
+$_lang['pdotools_prop_ajaxElemWrapper'] = 'CSS-Selektor für das Wrapper-Element, das die Ergebnisse und die Paginierung enthält.';
+$_lang['pdotools_prop_ajaxElemRows'] = 'CSS-Selektor für das Element, das die Ergebnisse enthält.';
+$_lang['pdotools_prop_ajaxElemPagination'] = 'CSS-Selektor für das Element, das die Paginierung enthält.';
+$_lang['pdotools_prop_ajaxElemLink'] = 'CSS-Selektor für die Paginierungs-Links.';
+$_lang['pdotools_prop_ajaxElemMore'] = 'CSS-Selektor für den "Mehr laden"-Button, wenn als ajaxMode "Button" gewählt wurde.';
 $_lang['pdotools_prop_ajaxTplMore'] = 'Template-Chunk für den "Mehr"-Button, wenn als ajaxMode "Button" gewählt wurde. Muss einen in "ajaxElemMore" angegebenen Selektor enthalten.';
 $_lang['pdotools_prop_ajaxHistory'] = 'Seitennummer in der URL speichern, wenn Sie den Ajax-Modus verwenden.';
 

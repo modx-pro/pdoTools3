@@ -7,18 +7,6 @@ module.exports = function (grunt) {
                     'assets/components/pdotools/js/pdopage.js'
                 ],
                 dest: 'assets/components/pdotools/js/pdopage.min.js'
-            },
-            jquery_pdopage: {
-                src: [
-                    'assets/components/pdotools/js/jquery.pdopage.js'
-                ],
-                dest: 'assets/components/pdotools/js/jquery.pdopage.min.js'
-            },
-            jquery_sticky: {
-                src: [
-                    'assets/components/pdotools/js/lib/jquery.sticky.js'
-                ],
-                dest: 'assets/components/pdotools/js/lib/jquery.sticky.min.js'
             }
         },
         cssmin: {

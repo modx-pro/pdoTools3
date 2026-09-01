@@ -82,7 +82,7 @@ class Paginator
 
         if (empty($this->pdoTools->config('frontend_startup_js'))) {
             $this->modx->regClientStartupScript(
-                '<script>pdoPage = {callbacks: {}, keys: {}, configs: {}};</script>',
+                '<script>pdoPage = {callbacks: {}, keys: {}, configs: {}, instances: {}};</script>',
                 true
             );
         } else {
