@@ -1,352 +1,401 @@
-if (typeof(pdoPage) == 'undefined') {
-    pdoPage = {callbacks: {}, keys: {}, configs: {}};
-}
+(function (window, document) {
+    'use strict';
 
-pdoPage.Reached = false;
-
-pdoPage.initialize = function (config) {
-    if (pdoPage.keys[config['pageVarKey']] == undefined) {
-        var tkey = config['pageVarKey'];
-        var tparams = pdoPage.Hash.get();
-        var tpage = tparams[tkey] == undefined ? 1 : tparams[tkey];
-        pdoPage.keys[tkey] = Number(tpage);
-        pdoPage.configs[tkey] = config;
+    if (typeof window.pdoPage === 'undefined') {
+        window.pdoPage = {callbacks: {}, keys: {}, configs: {}, instances: {}};
     }
-    var $this = this;
-    switch (config['mode']) {
-        case 'default':
-            $(document).on('click', config['link'], function (e) {
-                e.preventDefault();
-                var href = $(this).prop('href');
-                var key = config['pageVarKey'];
-                var match = href.match(new RegExp(key + '=(\\d+)'));
-                var page = !match ? 1 : match[1];
-                if (pdoPage.keys[key] != page) {
-                    if (config.history) {
-                        if (page == 1) {
-                            pdoPage.Hash.remove(key);
-                        } else {
-                            pdoPage.Hash.add(key, page);
-                        }
+
+    function qs(selector, root) {
+        return (root || document).querySelector(selector);
+    }
+
+    function qsa(selector, root) {
+        return Array.from((root || document).querySelectorAll(selector));
+    }
+
+    function pageFromHref(href, key) {
+        try {
+            const value = new URL(href, window.location.origin).searchParams.get(key);
+            return value ? Number(value) : 1;
+        } catch (e) {
+            return 1;
+        }
+    }
+
+    function matchesSelector(el, selector) {
+        return qsa(selector).includes(el);
+    }
+
+    function isMoreTarget(target, moreSelector) {
+        const more = qs(moreSelector);
+        if (!more) {
+            return null;
+        }
+        if (target === more || more.contains(target)) {
+            return more;
+        }
+        return null;
+    }
+
+    function setHistory(key, page) {
+        const params = new URLSearchParams(window.location.search);
+        if (Number(page) === 1) {
+            params.delete(key);
+        } else {
+            params.set(key, String(page));
+        }
+        const query = params.toString();
+        const url = window.location.pathname + (query ? '?' + query : '');
+        window.history.pushState({pdoPage: url}, '', url);
+    }
+
+    function Controller(config) {
+        this.config = config;
+        this.key = config.pageVarKey;
+        this.busy = false;
+        this.reached = false;
+        this.abortController = null;
+        this.observer = null;
+        this.sentinel = null;
+        this.bound = false;
+    }
+
+    Controller.prototype.getWrapper = function () {
+        return qs(this.config.wrapper);
+    };
+
+    Controller.prototype.getRows = function () {
+        return qs(this.config.rows);
+    };
+
+    Controller.prototype.getPagination = function () {
+        return qs(this.config.pagination);
+    };
+
+    Controller.prototype.bind = function () {
+        if (this.bound) {
+            return;
+        }
+        this.bound = true;
+
+        const self = this;
+        const config = this.config;
+        const key = this.key;
+
+        switch (config.mode) {
+            case 'default':
+                document.addEventListener('click', function (e) {
+                    const link = e.target.closest('a');
+                    if (!link || !matchesSelector(link, config.link)) {
+                        return;
                     }
-                    $this.loadPage(href, config);
-                }
-            });
-
-            if (config.history) {
-                $(window).on('popstate', function (e) {
-                    if (e.originalEvent.state && e.originalEvent.state['pdoPage']) {
-                        $this.loadPage(e.originalEvent.state['pdoPage'], config);
-                    }
-                });
-
-                history.replaceState({pdoPage: window.location.href}, '');
-            }
-            break;
-
-        case 'scroll':
-        case 'button':
-            if (config.history) {
-                if (typeof(jQuery().sticky) == 'undefined') {
-                    $.getScript(config['assetsUrl'] + 'js/lib/jquery.sticky.min.js', function () {
-                        pdoPage.initialize(config);
-                    });
-                    return;
-                }
-                pdoPage.stickyPagination(config);
-            }
-            else {
-                $(config.pagination).hide();
-            }
-
-            var key = config['pageVarKey'];
-
-            if (config['mode'] == 'button') {
-                // Add more button
-                $(config['rows']).after(config['moreTpl']);
-                var has_results = false;
-                $(config['link']).each(function () {
-                    var href = $(this).prop('href');
-                    var match = href.match(new RegExp(key + '=(\\d+)'));
-                    var page = !match ? 1 : match[1];
-                    if (page > pdoPage.keys[key]) {
-                        has_results = true;
-                        return false;
-                    }
-                });
-                if (!has_results) {
-                    $(config['more']).hide();
-                }
-
-                $(document).on('click', config['more'], function (e) {
                     e.preventDefault();
-                    pdoPage.addPage(config)
-                });
-            }
-            else {
-                // Scroll pagination
-                var wrapper = $(config['wrapper']);
-                var $window = $(window);
-                $window.on('load scroll', function () {
-                    if (!pdoPage.Reached && $window.scrollTop() > wrapper.height() - $window.height()) {
-                        pdoPage.Reached = true;
-                        pdoPage.addPage(config);
+                    const page = pageFromHref(link.href, key);
+                    if (Number(pdoPage.keys[key]) === page) {
+                        return;
                     }
+                    if (config.history) {
+                        setHistory(key, page);
+                    }
+                    self.load(link.href, 'replace');
                 });
-            }
-            break;
-    }
-};
 
-pdoPage.addPage = function (config) {
-    var key = config['pageVarKey'];
-    var current = pdoPage.keys[key] || 1;
-    $(config['link']).each(function () {
-        var href = $(this).prop('href');
-        var match = href.match(new RegExp(key + '=(\\d+)'));
-        var page = !match ? 1 : Number(match[1]);
-        if (page > current) {
-            if (config.history) {
-                if (page == 1) {
-                    pdoPage.Hash.remove(key);
+                if (config.history) {
+                    window.addEventListener('popstate', function (e) {
+                        if (e.state && e.state.pdoPage) {
+                            self.load(e.state.pdoPage, 'replace');
+                        }
+                    });
+                    history.replaceState({pdoPage: window.location.href}, '');
+                }
+                break;
+
+            case 'scroll':
+            case 'button':
+                if (config.history) {
+                    const pagination = this.getPagination();
+                    if (pagination) {
+                        pagination.classList.add('pdopage-sticky');
+                    }
                 } else {
-                    pdoPage.Hash.add(key, page);
-                }
-            }
-            pdoPage.loadPage(href, config, 'append');
-            return false;
-        }
-    });
-};
-
-pdoPage.loadPage = function (href, config, mode) {
-    var wrapper = $(config['wrapper']);
-    var rows = $(config['rows']);
-    var pagination = $(config['pagination']);
-    var key = config['pageVarKey'];
-    var match = href.match(new RegExp(key + '=(\\d+)'));
-    var page = !match ? 1 : Number(match[1]);
-    if (!mode) {
-        mode = 'replace';
-    }
-
-    if (pdoPage.keys[key] == page) {
-        return;
-    }
-    if (pdoPage.callbacks['before'] && typeof(pdoPage.callbacks['before']) == 'function') {
-        pdoPage.callbacks['before'].apply(this, [config]);
-    }
-    else {
-        if (config['mode'] != 'scroll') {
-            wrapper.css({opacity: .3});
-        }
-        wrapper.addClass('loading');
-    }
-
-    var params = pdoPage.Hash.get();
-    for (var i in params) {
-        if (params.hasOwnProperty(i) && pdoPage.keys[i] && i != key) {
-            delete(params[i]);
-        }
-    }
-    params[key] = pdoPage.keys[key] = page;
-    params['pageId'] = config['pageId'];
-    params['hash'] = config['hash'];
-
-    $.post(config['connectorUrl'], params, function (response) {
-        if (response && response['total']) {
-            wrapper.find(pagination).html(response['pagination']);
-            if (mode == 'append') {
-                wrapper.find(rows).append(response['output']);
-                if (config['mode'] == 'button') {
-                    if (response['pages'] == response['page']) {
-                        $(config['more']).hide();
-                    }
-                    else {
-                        $(config['more']).show();
+                    const hiddenPagination = this.getPagination();
+                    if (hiddenPagination) {
+                        hiddenPagination.hidden = true;
                     }
                 }
-                else if (config['mode'] == 'scroll') {
-                    pdoPage.Reached = false;
-                    var $window = $(window);
-                    if ($window.scrollTop() > wrapper.height() - $window.height()) {
-                        pdoPage.Reached = true;
-                        pdoPage.addPage(config);
-                    }
-                }
-            }
-            else {
-                wrapper.find(rows).html(response['output']);
-            }
 
-            if (pdoPage.callbacks['after'] && typeof(pdoPage.callbacks['after']) == 'function') {
-                pdoPage.callbacks['after'].apply(this, [config, response]);
-            }
-            else {
-                wrapper.removeClass('loading');
-                if (config['mode'] != 'scroll') {
-                    wrapper.css({opacity: 1});
-                    if (config['mode'] == 'default' && config['scrollTop'] !== false) {
-                        $('html, body').animate({scrollTop: wrapper.position().top - 50 || 0}, 0);
+                if (config.mode === 'button') {
+                    const rows = this.getRows();
+                    if (rows && config.moreTpl) {
+                        rows.insertAdjacentHTML('afterend', config.moreTpl);
                     }
+                    const hasMore = qsa(config.link).some(function (link) {
+                        return pageFromHref(link.href, key) > Number(pdoPage.keys[key] || 1);
+                    });
+                    const more = qs(config.more);
+                    if (more && !hasMore) {
+                        more.hidden = true;
+                    }
+                    document.addEventListener('click', function (e) {
+                        const btn = isMoreTarget(e.target, config.more);
+                        if (!btn) {
+                            return;
+                        }
+                        e.preventDefault();
+                        self.addPage();
+                    });
+                } else {
+                    this.bindScroll();
                 }
-            }
-            pdoPage.updateTitle(config, response);
-            $(document).trigger('pdopage_load', [config, response]);
+                break;
         }
-    }, 'json');
-};
+    };
 
-pdoPage.stickyPagination = function (config) {
-    var pagination = $(config['pagination']);
-    if (pagination.is(':visible')) {
-        pagination.sticky({
-            wrapperClassName: 'sticky-pagination',
-            getWidthFrom: config['wrapper'],
-            responsiveWidth: true,
-            topSpacing: 2
+    Controller.prototype.bindScroll = function () {
+        const self = this;
+        const rows = this.getRows();
+        if (!rows) {
+            return;
+        }
+
+        this.sentinel = document.createElement('div');
+        this.sentinel.className = 'pdopage-sentinel';
+        this.sentinel.setAttribute('aria-hidden', 'true');
+        rows.parentNode.insertBefore(this.sentinel, rows.nextSibling);
+
+        if ('IntersectionObserver' in window) {
+            this.observer = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting && !self.busy && !self.reached) {
+                        self.reached = true;
+                        self.addPage();
+                    }
+                });
+            }, {root: null, rootMargin: '0px', threshold: 0});
+            this.observer.observe(this.sentinel);
+            return;
+        }
+
+        const onScroll = function () {
+            if (self.busy || self.reached) {
+                return;
+            }
+            const wrapper = self.getWrapper();
+            if (!wrapper) {
+                return;
+            }
+            if (window.scrollY > wrapper.offsetHeight - window.innerHeight) {
+                self.reached = true;
+                self.addPage();
+            }
+        };
+        window.addEventListener('scroll', onScroll, {passive: true});
+        window.addEventListener('load', onScroll);
+    };
+
+    Controller.prototype.addPage = function () {
+        const key = this.key;
+        const current = Number(pdoPage.keys[key] || 1);
+        let next = null;
+        const links = qsa(this.config.link);
+        for (let i = 0; i < links.length; i++) {
+            if (pageFromHref(links[i].href, key) > current) {
+                next = links[i];
+                break;
+            }
+        }
+        if (!next) {
+            this.reached = true;
+            if (this.observer && this.sentinel) {
+                this.observer.unobserve(this.sentinel);
+            }
+            return;
+        }
+        const page = pageFromHref(next.href, key);
+        if (this.config.history) {
+            setHistory(key, page);
+        }
+        this.load(next.href, 'append');
+    };
+
+    Controller.prototype.setHtml = function (el, html) {
+        if (!el) {
+            return;
+        }
+        while (el.firstChild) {
+            el.removeChild(el.firstChild);
+        }
+        if (!html) {
+            return;
+        }
+        const template = document.createElement('template');
+        template.innerHTML = html;
+        el.appendChild(template.content);
+    };
+
+    Controller.prototype.appendHtml = function (el, html) {
+        if (!el || !html) {
+            return;
+        }
+        const template = document.createElement('template');
+        template.innerHTML = html;
+        el.appendChild(template.content);
+    };
+
+    Controller.prototype.load = function (href, mode) {
+        const self = this;
+        const config = this.config;
+        const key = this.key;
+        const wrapper = this.getWrapper();
+        const rows = this.getRows();
+        const pagination = this.getPagination();
+        const page = pageFromHref(href, key);
+        mode = mode || 'replace';
+
+        if (Number(pdoPage.keys[key]) === page && mode !== 'force') {
+            return;
+        }
+        if (this.busy) {
+            return;
+        }
+
+        this.busy = true;
+        pdoPage.keys[key] = page;
+
+        if (typeof pdoPage.callbacks.before === 'function') {
+            pdoPage.callbacks.before.apply(this, [config]);
+        } else if (wrapper && config.mode !== 'scroll') {
+            wrapper.classList.add('loading');
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        Object.keys(pdoPage.keys).forEach(function (otherKey) {
+            if (otherKey !== key) {
+                params.delete(otherKey);
+            }
         });
-        $(config['wrapper']).trigger('scroll');
-    }
-};
+        params.set(key, String(page));
+        params.set('pageId', String(config.pageId));
+        params.set('hash', String(config.hash));
 
-pdoPage.updateTitle = function (config, response) {
-    if (typeof(pdoTitle) == 'undefined') {
-        return;
-    }
-    var $title = $('title');
-    var separator = pdoTitle.separator || ' / ';
-    var tpl = pdoTitle.tpl;
+        if (this.abortController) {
+            this.abortController.abort();
+        }
+        this.abortController = new AbortController();
 
-    var title = [];
-    var items = $title.text().split(separator);
-    var pcre = new RegExp('^' + tpl.split(' ')[0] + ' ');
-    for (var i = 0; i < items.length; i++) {
-        if (i === 1 && response.page && response.page > 1) {
-            title.push(tpl.replace('{page}', response.page).replace('{pageCount}', response.pages));
-        }
-        if (!items[i].match(pcre)) {
-            title.push(items[i]);
-        }
-    }
-    $title.text(title.join(separator));
-};
-
-pdoPage.Hash = {
-    get: function () {
-        var vars = {}, hash, splitter, hashes;
-        if (!this.oldbrowser()) {
-            var pos = window.location.href.indexOf('?');
-            hashes = (pos != -1) ? decodeURIComponent(window.location.href.substr(pos + 1)).replace('+', ' ') : '';
-            splitter = '&';
-        }
-        else {
-            hashes = decodeURIComponent(window.location.hash.substr(1)).replace('+', ' ');
-            splitter = '/';
-        }
-
-        if (hashes.length == 0) {
-            return vars;
-        }
-        else {
-            hashes = hashes.split(splitter);
-        }
-
-        var matches, key;
-        for (var i in hashes) {
-            if (hashes.hasOwnProperty(i)) {
-                hash = hashes[i].split('=');
-                if (typeof hash[1] == 'undefined') {
-                    vars['anchor'] = hash[0];
-                }
-                else {
-                    matches = hash[0].match(/\[(.*?|)\]$/);
-                    if (matches) {
-                        key = hash[0].replace(matches[0], '');
-                        if (!vars.hasOwnProperty(key)) {
-                            // Array
-                            if (matches[1] == '') {
-                                vars[key] = [];
-                            }
-                            // Object
-                            else {
-                                vars[key] = {};
-                            }
-                        }
-                        if (vars[key] instanceof Array) {
-                            vars[key].push(hash[1]);
-                        }
-                        else {
-                            vars[key][matches[1]] = hash[1];
-                        }
+        fetch(config.connectorUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: params.toString(),
+            credentials: 'same-origin',
+            signal: this.abortController.signal
+        }).then(function (response) {
+            if (!response.ok) {
+                throw new Error('pdoPage request failed');
+            }
+            return response.json();
+        }).then(function (data) {
+            if (!data || !data.total) {
+                return;
+            }
+            self.setHtml(pagination, data.pagination || '');
+            if (mode === 'append') {
+                self.appendHtml(rows, data.output || '');
+                if (config.mode === 'button') {
+                    const more = qs(config.more);
+                    if (more) {
+                        more.hidden = Number(data.pages) === Number(data.page) || Number(data.pages) === 0;
                     }
-                    // String or numeric
-                    else {
-                        vars[hash[0]] = hash[1];
+                } else if (config.mode === 'scroll') {
+                    if (Number(data.pages) === Number(data.page) || Number(data.pages) === 0) {
+                        self.reached = true;
+                        if (self.observer && self.sentinel) {
+                            self.observer.unobserve(self.sentinel);
+                        }
+                    } else {
+                        self.reached = false;
                     }
                 }
+            } else {
+                self.setHtml(rows, data.output || '');
             }
-        }
-        return vars;
-    },
 
-    set: function (vars) {
-        var hash = '';
-        for (var i in vars) {
-            if (vars.hasOwnProperty(i)) {
-                if (typeof vars[i] == 'object') {
-                    for (var j in vars[i]) {
-                        if (vars[i].hasOwnProperty(j)) {
-                            // Array
-                            if (vars[i] instanceof Array) {
-                                hash += '&' + i + '[]=' + vars[i][j];
-                            }
-                            // Object
-                            else {
-                                hash += '&' + i + '[' + j + ']=' + vars[i][j];
-                            }
-                        }
-                    }
-                }
-                // String or numeric
-                else {
-                    hash += '&' + i + '=' + vars[i];
+            if (typeof pdoPage.callbacks.after === 'function') {
+                pdoPage.callbacks.after.apply(self, [config, data]);
+            } else if (wrapper) {
+                wrapper.classList.remove('loading');
+                if (config.mode === 'default' && config.scrollTop !== false) {
+                    const top = wrapper.getBoundingClientRect().top + window.scrollY - 50;
+                    window.scrollTo(0, top > 0 ? top : 0);
                 }
             }
-        }
 
-        if (!this.oldbrowser()) {
-            if (hash.length != 0) {
-                hash = '?' + hash.substr(1);
+            pdoPage.updateTitle(config, data);
+            document.dispatchEvent(new CustomEvent('pdopage:load', {
+                detail: {config: config, response: data}
+            }));
+        }).catch(function (error) {
+            if (error && error.name === 'AbortError') {
+                return;
             }
-            window.history.pushState({pdoPage: document.location.pathname + hash}, '', document.location.pathname + hash);
+            if (wrapper) {
+                wrapper.classList.remove('loading');
+            }
+            self.reached = false;
+        }).then(function () {
+            self.busy = false;
+        });
+    };
+
+    pdoPage.initialize = function (config) {
+        const key = config.pageVarKey;
+        if (pdoPage.instances[key]) {
+            return pdoPage.instances[key];
         }
-        else {
-            window.location.hash = hash.substr(1);
+        const params = new URLSearchParams(window.location.search);
+        const current = params.get(key);
+        pdoPage.keys[key] = current ? Number(current) : 1;
+        pdoPage.configs[key] = config;
+        const controller = new Controller(config);
+        pdoPage.instances[key] = controller;
+        controller.bind();
+        return controller;
+    };
+
+    pdoPage.addPage = function (config) {
+        const controller = pdoPage.instances[config.pageVarKey];
+        if (controller) {
+            controller.addPage();
         }
-    },
+    };
 
-    add: function (key, val) {
-        var hash = this.get();
-        hash[key] = val;
-        this.set(hash);
-    },
+    pdoPage.loadPage = function (href, config, mode) {
+        const controller = pdoPage.instances[config.pageVarKey];
+        if (controller) {
+            controller.load(href, mode || 'replace');
+        }
+    };
 
-    remove: function (key) {
-        var hash = this.get();
-        delete hash[key];
-        this.set(hash);
-    },
-
-    clear: function () {
-        this.set({});
-    },
-
-    oldbrowser: function () {
-        return !(window.history && history.pushState);
-    }
-};
-
-if (typeof(jQuery) == 'undefined') {
-    console.log("You must load jQuery for using ajax mode in pdoPage.");
-}
+    pdoPage.updateTitle = function (config, response) {
+        if (typeof window.pdoTitle === 'undefined') {
+            return;
+        }
+        const separator = pdoTitle.separator || ' / ';
+        const tpl = pdoTitle.tpl;
+        const title = [];
+        const items = document.title.split(separator);
+        const pcre = new RegExp('^' + tpl.split(' ')[0] + ' ');
+        for (let i = 0; i < items.length; i++) {
+            if (i === 1 && response.page && response.page > 1) {
+                title.push(tpl.replace('{page}', response.page).replace('{pageCount}', response.pages));
+            }
+            if (!items[i].match(pcre)) {
+                title.push(items[i]);
+            }
+        }
+        document.title = title.join(separator);
+    };
+})(window, document);
