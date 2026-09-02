@@ -90,6 +90,8 @@ if (!$resource) {
 if (!empty($customParents)) {
     $customParents = is_array($customParents) ? $customParents : array_map('trim', explode(',', $customParents));
     $parents = is_array($customParents) ? array_reverse($customParents) : [];
+} elseif (!empty($parents) && !is_array($parents)) {
+    $parents = array_map('trim', explode(',', (string)$parents));
 }
 if (empty($parents)) {
     $parents = $modx->getParentIds($resource->id, $limit, ['context' => $resource->get('context_key')]);

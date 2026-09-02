@@ -24,6 +24,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - [#305] [pdoMenu] Fixed notices on missing class_key and content for weblinks.
 - [#349] [pdoTools] Cast config offset to integer for PHP 8.
 - [#351] [pdoPage] Fixed undefined variable $showLog.
+- [pdoTools3#16] [pdoCrumbs] Fixed [] operator on string &parents when showHome is enabled.
 - [#384] [pdoFetch] Fixed warning when preparing where/having condition for the log message.
 - [#384] [pdoPage] Fixed too strict page comparison in the paginator (integer vs float).
 
