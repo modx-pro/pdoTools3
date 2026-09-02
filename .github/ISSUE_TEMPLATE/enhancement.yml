@@ -1,0 +1,17 @@
+name: Улучшение
+description: Новое поведение или доработка
+labels: [enhancement]
+body:
+  - type: textarea
+    id: want
+    attributes:
+      label: Что нужно
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Зачем
+      description: Задача или кейс, не «было бы хорошо».
+    validations:
+      required: true
