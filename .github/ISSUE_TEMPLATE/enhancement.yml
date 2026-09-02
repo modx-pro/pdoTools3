@@ -1,0 +1,17 @@
+name: Enhancement
+description: New behavior or a change to an existing one
+labels: [enhancement]
+body:
+  - type: textarea
+    id: want
+    attributes:
+      label: What you want
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: The job or the case you are solving.
+    validations:
+      required: true
