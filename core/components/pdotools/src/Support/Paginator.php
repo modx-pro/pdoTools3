@@ -187,11 +187,13 @@ class Paginator
      * @param string $url
      * @param int $page
      * @param string $tpl
-     * @param array $flags Extra placeholders (isActive, isFirst, …)
+     * @param int|null $current Current page (for isActive / isFirst / isLast)
+     * @param int|null $pages Total pages
+     * @param bool $skip Skip/ellipsis slot
      *
      * @return string $href
      */
-    public function makePageLink($url = '', $page = 1, $tpl = '', array $flags = [])
+    public function makePageLink($url = '', $page = 1, $tpl = '', $current = null, $pages = null, $skip = false)
     {
         if (empty($url)) {
             $url = $this->getBaseUrl();
@@ -240,33 +242,21 @@ class Paginator
             $href = preg_replace("/&(?!amp;)/", "&amp;", $href);
         }
 
-        $data = array_merge([
+        $data = [
             'page' => $page,
             'pageNo' => $page,
             'href' => $href,
-        ], $flags);
+        ];
+        if ($current !== null && $pages !== null) {
+            $data = array_merge(
+                $data,
+                PageItemState::placeholders($page, $current, $pages, $skip)
+            );
+        }
 
         return !empty($tpl)
             ? $this->pdoTools->getChunk($tpl, $data)
             : $href;
-    }
-
-    /**
-     * Template and flags for one page number (or skip) slot.
-     *
-     * @param int $page
-     * @param int $current
-     * @param int $pages
-     * @param bool $skip
-     * @return array{0:string,1:array<string,int>}
-     */
-    public function pageItemTplAndFlags($page, $current, $pages, $skip = false)
-    {
-        $config = $this->pdoTools->config();
-        $tpl = PageItemState::tpl($config, $page, $current, $skip);
-        $flags = PageItemState::placeholders($page, $current, $pages, $skip);
-
-        return [$tpl, $flags];
     }
 
     /**
@@ -279,15 +269,12 @@ class Paginator
      */
     protected function renderPageItem($url, $page, $current, $pages, $skip = false)
     {
-        [$tpl, $flags] = $this->pageItemTplAndFlags($page, $current, $pages, $skip);
+        $tpl = PageItemState::tpl($this->pdoTools->config(), $page, $current, $skip);
         if (empty($tpl)) {
             return '';
         }
-        if ($skip && empty($this->pdoTools->config('tplPageSkip'))) {
-            return '';
-        }
 
-        return $this->makePageLink($url, $page, $tpl, $flags);
+        return $this->makePageLink($url, $page, $tpl, $current, $pages, $skip);
     }
 
     /**
@@ -342,7 +329,7 @@ class Paginator
             $pageLimit = 0;
         } else {
             // -1 because we need to show current page
-            $tmp = (integer)floor(($pageLimit - 1) / 2);
+            $tmp = (int)floor(($pageLimit - 1) / 2);
             $left = $tmp;                        // Pages from left
             $right = $pageLimit - $left - 1;    // Pages from right
 
@@ -399,7 +386,7 @@ class Paginator
         if ($pageLimit >= $pages || $pageLimit < 7) {
             return $this->buildClassicPagination($page, $pages, $url);
         } else {
-            $tmp = (integer)floor($pageLimit / 3);
+            $tmp = (int)floor($pageLimit / 3);
             $left = $right = $tmp;
             $center = $pageLimit - ($tmp * 2);
         }
@@ -456,7 +443,7 @@ class Paginator
                     $pagination[$key] = $this->renderPageSkip($pages);
                 }
             } else {
-                $tmp = (integer)floor(($center - 1) / 2);
+                $tmp = (int)floor(($center - 1) / 2);
                 $i = $page - $tmp;
                 while ($i < $page - $tmp + $center) {
                     $pagination[$i] = $this->renderPageItem($url, $i, $page, $pages);

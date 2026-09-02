@@ -1,7 +1,7 @@
 <?php
 
 use ModxPro\PdoTools\Fetch;
-use ModxPro\PdoTools\Support\CrumbItemState;
+use ModxPro\PdoTools\Support\TemplateFlags;
 use MODX\Revolution\modResource;
 use MODX\Revolution\modWebLink;
 
@@ -184,12 +184,6 @@ if (!empty($rows) && is_array($rows)) {
         }
         if ($row['id'] == $resource->id && empty($showCurrent)) {
             continue;
-        } elseif ($row['id'] == $resource->id && !empty($tplCurrent)) {
-            $row['_tpl'] = $tplCurrent;
-        } elseif ($row['id'] == $siteStart && !empty($tplHome)) {
-            $row['_tpl'] = $tplHome;
-        } else {
-            $row['_tpl'] = $pdoFetch->defineChunk($row);
         }
         $prepared[] = $row;
     }
@@ -198,14 +192,24 @@ if (!empty($rows) && is_array($rows)) {
     foreach ($prepared as $index => $row) {
         $row = array_merge(
             $row,
-            CrumbItemState::placeholders($row['id'], $resource->id, $siteStart, $index, $total)
+            TemplateFlags::toPlaceholders([
+                'isFirst' => $index === 0,
+                'isLast' => $total > 0 && $index === $total - 1,
+                'isActive' => (int)$row['id'] === (int)$resource->id,
+                'isHome' => (int)$row['id'] === (int)$siteStart,
+            ])
         );
         if (isset($return) && $return === 'data') {
             $output[] = $row;
             continue;
         }
-        $tpl = $row['_tpl'] ?? '';
-        unset($row['_tpl']);
+        if ($row['id'] == $resource->id && !empty($tplCurrent)) {
+            $tpl = $tplCurrent;
+        } elseif ($row['id'] == $siteStart && !empty($tplHome)) {
+            $tpl = $tplHome;
+        } else {
+            $tpl = $pdoFetch->defineChunk($row);
+        }
         $output[] = empty($tpl)
             ? '<pre>' . $pdoFetch->getChunk('', $row) . '</pre>'
             : $pdoFetch->getChunk($tpl, $row, $fastMode);

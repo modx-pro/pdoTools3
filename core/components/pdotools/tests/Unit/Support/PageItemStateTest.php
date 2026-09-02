@@ -41,5 +41,6 @@ class PageItemStateTest extends TestCase
         $this->assertSame('active', PageItemState::tpl($config, 2, 2));
         $this->assertSame('page', PageItemState::tpl($config, 3, 2));
         $this->assertSame('skip', PageItemState::tpl($config, 4, 2, true));
+        $this->assertSame('', PageItemState::tpl(['tplPage' => 'page'], 4, 2, true));
     }
 }

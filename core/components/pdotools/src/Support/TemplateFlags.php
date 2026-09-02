@@ -17,9 +17,6 @@ class TemplateFlags
         foreach ($bools as $key => $value) {
             $out[$key] = $value ? 1 : 0;
         }
-        if (isset($out['hasChildren']) && !isset($out['hasChilds'])) {
-            $out['hasChilds'] = $out['hasChildren'];
-        }
 
         return $out;
     }

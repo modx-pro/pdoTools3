@@ -32,31 +32,32 @@ class MenuItemState
     /** @var int */
     public $level;
     /** @var array */
-    public $row;
+    private $config;
 
     /**
      * @param array $row
      * @param array $config
-     * @param callable $isHere fn(int $id): bool
+     * @param bool $isHere Whether this rowId is on the path to the current resource
      * @return self
      */
-    public static function fromRow(array $row, array $config, callable $isHere)
+    public static function fromRow(array $row, array $config, $isHere)
     {
         $state = new self();
-        $state->row = $row;
+        $state->config = $config;
         $state->level = (int)($row['level'] ?? 1);
         $state->rowId = self::resolveRowId($row, $config);
         $state->isFirst = isset($row['idx']) && (int)$row['idx'] === 1;
         $state->isLast = !empty($row['last']);
         $state->hasChildren = !empty($row['children']);
         $state->isActive = $state->rowId == ($config['hereId'] ?? 0);
-        $state->isHere = (bool)$isHere($state->rowId);
+        $state->isHere = (bool)$isHere;
         $state->isStart = $state->level === 1 && !empty($config['displayStart']);
         $state->isInner = $state->level > 1;
         $state->isWebLink = !empty($row['class_key']) && $row['class_key'] === modWebLink::class;
+        $attrs = isset($row['link_attributes']) ? (string)$row['link_attributes'] : '';
         $state->isCategory = $state->hasChildren && (
             empty($row['template'])
-            || (isset($row['link_attributes']) && strpos((string)$row['link_attributes'], 'category') !== false)
+            || ($attrs !== '' && strpos($attrs, 'category') !== false)
         );
 
         return $state;
@@ -83,11 +84,11 @@ class MenuItemState
     }
 
     /**
-     * @return array<string, bool>
+     * @return array<string, int>
      */
-    public function boolFlags()
+    public function placeholders()
     {
-        return [
+        $out = TemplateFlags::toPlaceholders([
             'isFirst' => $this->isFirst,
             'isLast' => $this->isLast,
             'isActive' => $this->isActive,
@@ -96,23 +97,18 @@ class MenuItemState
             'isStart' => $this->isStart,
             'isCategory' => $this->isCategory,
             'isInner' => $this->isInner,
-        ];
+        ]);
+        $out['hasChilds'] = $out['hasChildren'];
+
+        return $out;
     }
 
     /**
-     * @return array<string, int>
-     */
-    public function placeholders()
-    {
-        return TemplateFlags::toPlaceholders($this->boolFlags());
-    }
-
-    /**
-     * @param array $config
      * @return string
      */
-    public function classes(array $config)
+    public function classes()
     {
+        $config = $this->config;
         $classes = [];
 
         if (!empty($config['rowClass'])) {
@@ -149,11 +145,11 @@ class MenuItemState
     /**
      * Config key for a specialized tpl*, or null to fall back to defineChunk().
      *
-     * @param array $config
      * @return string|null
      */
-    public function tplKey(array $config)
+    public function tplKey()
     {
+        $config = $this->config;
         if ($this->isStart && !empty($config['tplStart'])) {
             return 'tplStart';
         }

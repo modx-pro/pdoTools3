@@ -23,9 +23,7 @@ class MenuItemStateTest extends TestCase
                 'link_attributes' => '',
             ],
             ['hereId' => 42, 'displayStart' => true],
-            static function ($id) {
-                return (int)$id === 42;
-            }
+            true
         );
 
         $this->assertTrue($state->isFirst);
@@ -35,11 +33,13 @@ class MenuItemStateTest extends TestCase
         $this->assertTrue($state->hasChildren);
         $this->assertTrue($state->isStart);
         $this->assertFalse($state->isInner);
+        $this->assertSame(1, $state->placeholders()['hasChildren']);
         $this->assertSame(1, $state->placeholders()['hasChilds']);
     }
 
     public function testTplKeyPrefersTplHereWhenConfigured(): void
     {
+        $config = ['hereId' => 5, 'tplHere' => '@INLINE here'];
         $state = MenuItemState::fromRow(
             [
                 'id' => 5,
@@ -48,14 +48,24 @@ class MenuItemStateTest extends TestCase
                 'level' => 1,
                 'children' => 0,
             ],
-            ['hereId' => 5, 'tplHere' => '@INLINE here'],
-            static function () {
-                return true;
-            }
+            $config,
+            true
         );
 
-        $this->assertSame('tplHere', $state->tplKey(['hereId' => 5, 'tplHere' => '@INLINE here']));
-        $this->assertNull($state->tplKey(['hereId' => 5]));
+        $this->assertSame('tplHere', $state->tplKey());
+
+        $without = MenuItemState::fromRow(
+            [
+                'id' => 5,
+                'idx' => 2,
+                'last' => true,
+                'level' => 1,
+                'children' => 0,
+            ],
+            ['hereId' => 5],
+            true
+        );
+        $this->assertNull($without->tplKey());
     }
 
     public function testCategoryAndParentTpl(): void
@@ -70,22 +80,47 @@ class MenuItemStateTest extends TestCase
                 'template' => 0,
                 'link_attributes' => '',
             ],
-            ['hereId' => 99],
-            static function () {
-                return false;
-            }
+            ['hereId' => 99, 'tplCategoryFolder' => '@INLINE cat'],
+            false
         );
 
         $this->assertTrue($state->isCategory);
         $this->assertTrue($state->isInner);
-        $this->assertSame(
-            'tplCategoryFolder',
-            $state->tplKey(['tplCategoryFolder' => '@INLINE cat', 'hereId' => 99])
+        $this->assertSame('tplCategoryFolder', $state->tplKey());
+
+        $parentOnly = MenuItemState::fromRow(
+            [
+                'id' => 9,
+                'idx' => 2,
+                'last' => false,
+                'level' => 2,
+                'children' => 2,
+                'template' => 0,
+                'link_attributes' => '',
+            ],
+            ['hereId' => 99, 'tplParentRow' => '@INLINE parent'],
+            false
         );
-        $this->assertSame(
-            'tplParentRow',
-            $state->tplKey(['tplParentRow' => '@INLINE parent', 'hereId' => 99])
+        $this->assertSame('tplParentRow', $parentOnly->tplKey());
+    }
+
+    public function testCategoryFromLinkAttributesAtOffsetZero(): void
+    {
+        $state = MenuItemState::fromRow(
+            [
+                'id' => 9,
+                'idx' => 1,
+                'last' => false,
+                'level' => 1,
+                'children' => 2,
+                'template' => 3,
+                'link_attributes' => 'category',
+            ],
+            ['hereId' => 99],
+            false
         );
+
+        $this->assertTrue($state->isCategory);
     }
 
     public function testWeblinkRowIdAndClasses(): void
@@ -108,20 +143,13 @@ class MenuItemStateTest extends TestCase
                 'hereClass' => 'active',
                 'webLinkClass' => 'weblink',
             ],
-            static function ($id) {
-                return (int)$id === 20;
-            }
+            true
         );
 
         $this->assertSame(20, $state->rowId);
         $this->assertTrue($state->isActive);
         $this->assertTrue($state->isWebLink);
-        $classes = $state->classes([
-            'firstClass' => 'first',
-            'selfClass' => 'self',
-            'hereClass' => 'active',
-            'webLinkClass' => 'weblink',
-        ]);
+        $classes = $state->classes();
         $this->assertStringContainsString('first', $classes);
         $this->assertStringContainsString('self', $classes);
         $this->assertStringContainsString('active', $classes);

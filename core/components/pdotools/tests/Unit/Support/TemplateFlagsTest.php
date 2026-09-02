@@ -16,18 +16,4 @@ class TemplateFlagsTest extends TestCase
             TemplateFlags::toPlaceholders(['isActive' => true, 'isFirst' => false])
         );
     }
-
-    public function testHasChildsAliasesHasChildren(): void
-    {
-        $out = TemplateFlags::toPlaceholders(['hasChildren' => true]);
-        $this->assertSame(1, $out['hasChildren']);
-        $this->assertSame(1, $out['hasChilds']);
-    }
-
-    public function testDoesNotOverwriteExplicitHasChilds(): void
-    {
-        $out = TemplateFlags::toPlaceholders(['hasChildren' => true, 'hasChilds' => false]);
-        $this->assertSame(1, $out['hasChildren']);
-        $this->assertSame(0, $out['hasChilds']);
-    }
 }

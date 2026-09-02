@@ -181,7 +181,7 @@ class MenuBuilder
         }
 
         $state = $this->itemState($row);
-        $classes = $state->classes($this->pdoTools->config());
+        $classes = $state->classes();
         if (!empty($classes)) {
             $row['classNames'] = $row['classnames'] = $classes;
             $row['classes'] = ' class="' . $classes . '"';
@@ -227,15 +227,12 @@ class MenuBuilder
      * @param array $row
      * @return MenuItemState
      */
-    public function itemState(array $row = [])
+    protected function itemState(array $row = [])
     {
-        return MenuItemState::fromRow(
-            $row,
-            $this->pdoTools->config(),
-            function ($id) {
-                return $this->isHere($id);
-            }
-        );
+        $config = $this->pdoTools->config();
+        $rowId = MenuItemState::resolveRowId($row, $config);
+
+        return MenuItemState::fromRow($row, $config, $this->isHere($rowId));
     }
 
     /**
@@ -247,7 +244,7 @@ class MenuBuilder
      */
     public function getClasses($row = [])
     {
-        return $this->itemState($row)->classes($this->pdoTools->config());
+        return $this->itemState($row)->classes();
     }
 
 
@@ -270,7 +267,7 @@ class MenuBuilder
      */
     protected function tplFromState(MenuItemState $state, array $row)
     {
-        $key = $state->tplKey($this->pdoTools->config());
+        $key = $state->tplKey();
         if ($key === null) {
             return $this->pdoTools->defineChunk($row);
         }
