@@ -1,7 +1,7 @@
 <?php
 /** @var MODX\Revolution\modX $modx */
 
-if (!class_exists(\ModxPro\PdoTools\CoreTools::class, false)) {
+if (!class_exists(\ModxPro\PdoTools\CoreTools::class)) {
     require_once MODX_CORE_PATH . 'components/pdotools/vendor/autoload.php';
 }
 
