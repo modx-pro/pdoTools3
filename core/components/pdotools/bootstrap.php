@@ -1,7 +1,9 @@
 <?php
 /** @var MODX\Revolution\modX $modx */
 
-require_once MODX_CORE_PATH . 'components/pdotools/vendor/autoload.php';
+if (!class_exists(\ModxPro\PdoTools\CoreTools::class)) {
+    require_once MODX_CORE_PATH . 'components/pdotools/vendor/autoload.php';
+}
 
 // Add factories
 $modx->services[ModxPro\PdoTools\CoreTools::class] = $modx->services->factory(function ($c) use ($modx) {

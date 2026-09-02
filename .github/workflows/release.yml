@@ -61,11 +61,11 @@ jobs:
         working-directory: core/components/pdotools
         run: composer install --no-dev --no-interaction --prefer-dist
 
-      - name: Download MODX 3.0.5-pl
+      - name: Download MODX 3.2.4-pl
         run: |
-          curl -fsSL -o modx.zip https://modx.s3.amazonaws.com/releases/3.0.5/modx-3.0.5-pl.zip
+          curl -fsSL -o modx.zip https://modx.s3.amazonaws.com/releases/3.2.4/modx-3.2.4-pl.zip
           unzip -q modx.zip
-          mv modx-3.0.5-pl modx
+          mv modx-3.2.4-pl modx
           rm modx.zip
 
       - name: Install MODX (CLI)

@@ -165,7 +165,7 @@ $builder->setPackageAttributes([
     'license' => file_get_contents($sources['docs'] . 'license.txt'),
     'readme' => file_get_contents($sources['docs'] . 'readme.txt'),
     'requires' => [
-        'php' => '>=7.2.0',
+        'php' => '>=8.1.0',
         'modx' => '>=3.0.0-beta',
     ],
 ]);

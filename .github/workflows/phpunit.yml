@@ -1,0 +1,159 @@
+name: Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: PHP lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.1", "8.2", "8.3", "8.4"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - name: Lint sources
+        run: find core/components/pdotools/src core/components/pdotools/elements -name '*.php' -exec php -l {} +
+
+  unit:
+    name: Unit
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.1", "8.2", "8.3", "8.4"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer
+      - name: Install
+        working-directory: core/components/pdotools
+        run: composer install --no-interaction --prefer-dist
+      - name: Unit tests
+        working-directory: core/components/pdotools
+        run: composer test
+
+  integration:
+    name: Integration
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.1", "8.2", "8.3", "8.4"]
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: modx
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_mysql, mysqli, gd, zip, json, xml, mbstring, curl, tokenizer
+          coverage: none
+          tools: composer
+      - name: Install package deps
+        working-directory: core/components/pdotools
+        run: composer install --no-interaction --prefer-dist
+      - name: Download MODX 3.2.4-pl
+        run: |
+          curl -fsSL -o modx.zip https://modx.s3.amazonaws.com/releases/3.2.4/modx-3.2.4-pl.zip
+          unzip -q modx.zip
+          mv modx-3.2.4-pl modx
+          rm modx.zip
+      - name: Install MODX (CLI)
+        working-directory: modx
+        run: |
+          MODX_ROOT="${GITHUB_WORKSPACE}/modx"
+          cat > setup/config.xml <<XML
+          <modx>
+            <database_type>mysql</database_type>
+            <database_server>127.0.0.1</database_server>
+            <database>modx</database>
+            <database_user>root</database_user>
+            <database_password>root</database_password>
+            <database_connection_charset>utf8mb4</database_connection_charset>
+            <database_charset>utf8mb4</database_charset>
+            <database_collation>utf8mb4_unicode_ci</database_collation>
+            <table_prefix>modx_</table_prefix>
+            <https_port>443</https_port>
+            <http_host>localhost</http_host>
+            <inplace>0</inplace>
+            <unpacked>0</unpacked>
+            <language>en</language>
+            <cmsadmin>admin</cmsadmin>
+            <cmspassword>AdminAdmin1</cmspassword>
+            <cmsadminemail>admin@example.com</cmsadminemail>
+            <core_path>${MODX_ROOT}/core/</core_path>
+            <context_mgr_path>${MODX_ROOT}/manager/</context_mgr_path>
+            <context_mgr_url>/manager/</context_mgr_url>
+            <context_connectors_path>${MODX_ROOT}/connectors/</context_connectors_path>
+            <context_connectors_url>/connectors/</context_connectors_url>
+            <context_web_path>${MODX_ROOT}/</context_web_path>
+            <context_web_url>/</context_web_url>
+            <remove_setup_directory>0</remove_setup_directory>
+          </modx>
+          XML
+          sed -i 's/^[[:space:]]*//' setup/config.xml
+          php setup/index.php --installmode=new --config="${MODX_ROOT}/setup/config.xml"
+          test -f core/config/config.inc.php
+          test -f config.core.php
+      - name: Enable package auto-install
+        run: sed -i "s/const PKG_AUTO_INSTALL = false;/const PKG_AUTO_INSTALL = true;/" _build/build.config.php
+      - name: Build and install transport
+        run: php _build/ci-install-package.php
+      - name: Integration tests
+        working-directory: core/components/pdotools
+        env:
+          MODX_TEST_BASE: ${{ github.workspace }}/modx/
+        run: composer test:integration
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          coverage: pcov
+          tools: composer
+      - name: Install
+        working-directory: core/components/pdotools
+        run: composer install --no-interaction --prefer-dist
+      - name: Unit coverage
+        working-directory: core/components/pdotools
+        run: composer test:coverage
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: core/components/pdotools/coverage/html
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: core/components/pdotools/coverage/clover.xml
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
