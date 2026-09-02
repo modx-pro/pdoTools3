@@ -180,7 +180,8 @@ class MenuBuilder
             $row['menutitle'] = $row['pagetitle'];
         }
 
-        $classes = $this->getClasses($row);
+        $state = $this->itemState($row);
+        $classes = $state->classes();
         if (!empty($classes)) {
             $row['classNames'] = $row['classnames'] = $classes;
             $row['classes'] = ' class="' . $classes . '"';
@@ -201,7 +202,8 @@ class MenuBuilder
             ? $row[$this->pdoTools->config('titleOfLinks')]
             : $row['pagetitle'];
 
-        $tpl = $this->getTpl($row);
+        $row = array_merge($row, $state->placeholders());
+        $tpl = $this->tplFromState($state, $row);
         $row = $this->addWayFinderPlaceholders($row);
 
         return $this->pdoTools->getChunk($tpl, $row, $this->pdoTools->config('fastMode'));
@@ -222,6 +224,18 @@ class MenuBuilder
 
 
     /**
+     * @param array $row
+     * @return MenuItemState
+     */
+    protected function itemState(array $row = [])
+    {
+        $config = $this->pdoTools->config();
+        $rowId = MenuItemState::resolveRowId($row, $config);
+
+        return MenuItemState::fromRow($row, $config, $this->isHere($rowId));
+    }
+
+    /**
      * Determine style class for current item being processed
      *
      * @param array $row Array with resource properties
@@ -230,41 +244,12 @@ class MenuBuilder
      */
     public function getClasses($row = [])
     {
-        $classes = [];
-
-        if (!empty($this->pdoTools->config('rowClass'))) {
-            $classes[] = $this->pdoTools->config('rowClass');
-        }
-        if ($row['idx'] == 1 && !empty($this->pdoTools->config('firstClass'))) {
-            $classes[] = $this->pdoTools->config('firstClass');
-        } elseif (!empty($row['last']) && !empty($this->pdoTools->config('lastClass'))) {
-            $classes[] = $this->pdoTools->config('lastClass');
-        }
-        if (!empty($this->pdoTools->config('levelClass'))) {
-            $classes[] = $this->pdoTools->config('levelClass') . $row['level'];
-        }
-        if ($row['children'] && !empty($this->pdoTools->config('parentClass')) && ($row['level'] < $this->pdoTools->config('level') || empty($this->pdoTools->config('level')))) {
-            $classes[] = $this->pdoTools->config('parentClass');
-        }
-        $row_id = !empty($this->pdoTools->config('useWeblinkUrl')) && !empty($row['content']) && !empty($row['class_key']) && is_numeric(trim($row['content'], '[]~ ')) && $row['class_key'] == modWebLink::class
-            ? (int)trim($row['content'], '[]~ ')
-            : $row['id'];
-        if ($this->isHere($row_id) && !empty($this->pdoTools->config('hereClass'))) {
-            $classes[] = $this->pdoTools->config('hereClass');
-        }
-        if ($row_id == $this->pdoTools->config('hereId') && !empty($this->pdoTools->config('selfClass'))) {
-            $classes[] = $this->pdoTools->config('selfClass');
-        }
-        if (!empty($row['class_key']) && $row['class_key'] === modWebLink::class && !empty($this->pdoTools->config('webLinkClass'))) {
-            $classes[] = $this->pdoTools->config('webLinkClass');
-        }
-
-        return implode(' ', $classes);
+        return $this->itemState($row)->classes();
     }
 
 
     /**
-     * Determine style class for current item being processed
+     * Chunk name for the current menu row.
      *
      * @param array $row
      *
@@ -272,34 +257,22 @@ class MenuBuilder
      */
     public function getTpl($row = [])
     {
-        $row_id = !empty($this->pdoTools->config('useWeblinkUrl')) && !empty($row['class_key']) && !empty($row['content']) && $row['class_key'] === modWebLink::class && is_numeric(trim($row['content'], '[]~ '))
-            ? (int)trim($row['content'], '[]~ ')
-            : $row['id'];
-        if ($row['level'] === 1 && !empty($this->pdoTools->config('tplStart')) && !empty($this->pdoTools->config('displayStart'))) {
-            $tpl = 'tplStart';
-        } elseif ($row['children'] && $row_id == $this->pdoTools->config('hereId') && !empty($this->pdoTools->config('tplParentRowHere'))) {
-            $tpl = 'tplParentRowHere';
-        } elseif ($row['level'] > 1 && $row_id == $this->pdoTools->config('hereId') && !empty($this->pdoTools->config('tplInnerHere'))) {
-            $tpl = 'tplInnerHere';
-        } elseif ($row_id == $this->pdoTools->config('hereId') && !empty($this->pdoTools->config('tplHere'))) {
-            $tpl = 'tplHere';
-        } elseif ($row['children'] && $this->isHere($row_id) && !empty($this->pdoTools->config('tplParentRowActive'))) {
-            $tpl = 'tplParentRowActive';
-        } elseif ($row['children'] && (empty($row['template']) || strpos($row['link_attributes'], 'category') != false) && !empty($this->pdoTools->config('tplCategoryFolder'))) {
-            $tpl = 'tplCategoryFolder';
-        } // It's a typo, but it is left for backward compatibility
-        elseif ($row['children'] && (empty($row['template']) || strpos($row['link_attributes'], 'category') != false) && !empty($this->pdoTools->config('tplCategoryFolders'))) {
-            $tpl = 'tplCategoryFolders';
-        } // ---
-        elseif ($row['children'] && !empty($this->pdoTools->config('tplParentRow'))) {
-            $tpl = 'tplParentRow';
-        } elseif ($row['level'] > 1 && !empty($this->pdoTools->config('tplInnerRow'))) {
-            $tpl = 'tplInnerRow';
-        } else {
+        return $this->tplFromState($this->itemState($row), $row);
+    }
+
+    /**
+     * @param MenuItemState $state
+     * @param array $row
+     * @return mixed
+     */
+    protected function tplFromState(MenuItemState $state, array $row)
+    {
+        $key = $state->tplKey();
+        if ($key === null) {
             return $this->pdoTools->defineChunk($row);
         }
 
-        return $this->pdoTools->config($tpl);
+        return $this->pdoTools->config($key);
     }
 
 

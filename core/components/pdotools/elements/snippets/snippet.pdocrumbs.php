@@ -1,6 +1,7 @@
 <?php
 
 use ModxPro\PdoTools\Fetch;
+use ModxPro\PdoTools\Support\TemplateFlags;
 use MODX\Revolution\modResource;
 use MODX\Revolution\modWebLink;
 
@@ -158,6 +159,7 @@ if (!empty($rows) && is_array($rows)) {
         $rows = array_reverse($rows);
     }
 
+    $prepared = [];
     foreach ($rows as $row) {
         if (!empty($useWeblinkUrl) && $row['class_key'] === modWebLink::class) {
             $row['link'] = is_numeric(trim($row['content'], '[]~ '))
@@ -177,12 +179,31 @@ if (!empty($rows) && is_array($rows)) {
         }
 
         if (isset($return) && $return === 'data') {
-            $output[] = $row;
+            $prepared[] = $row;
             continue;
         }
         if ($row['id'] == $resource->id && empty($showCurrent)) {
             continue;
-        } elseif ($row['id'] == $resource->id && !empty($tplCurrent)) {
+        }
+        $prepared[] = $row;
+    }
+
+    $total = count($prepared);
+    foreach ($prepared as $index => $row) {
+        $row = array_merge(
+            $row,
+            TemplateFlags::toPlaceholders([
+                'isFirst' => $index === 0,
+                'isLast' => $total > 0 && $index === $total - 1,
+                'isActive' => (int)$row['id'] === (int)$resource->id,
+                'isHome' => (int)$row['id'] === (int)$siteStart,
+            ])
+        );
+        if (isset($return) && $return === 'data') {
+            $output[] = $row;
+            continue;
+        }
+        if ($row['id'] == $resource->id && !empty($tplCurrent)) {
             $tpl = $tplCurrent;
         } elseif ($row['id'] == $siteStart && !empty($tplHome)) {
             $tpl = $tplHome;
