@@ -16,6 +16,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
+- [pdoTools3#9] [pdoFetch] Extra categories use MiniShop3 (`MiniShop3\Model\msCategoryMember`). miniShop2 class names and `&disableMS2` are removed. Use `&disableMS3` to skip extra categories.
 - [#377] [pdoPage] Mark AJAX requests as connector mode via MODX_CONNECTOR_INCLUDED.
 
 ### Fixed

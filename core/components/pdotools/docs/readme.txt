@@ -6,7 +6,7 @@ Author: Vasiliy Naumkin <bezumkin@yandex.ru>
 
 Small library for creating fast snippets for MODX Revolution that works through PDO.
 
-Required by Tickets and miniShop2.
+Required by Tickets and MiniShop3.
 
 Main features
 - Builds queries with xPDO.

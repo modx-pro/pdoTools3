@@ -77,7 +77,7 @@ $_lang['pdotools_prop_tplUp'] = 'Чанк ссылки на родительск
 $_lang['pdotools_prop_tplNext'] = 'Чанк ссылки на следующий документ.';
 
 $_lang['pdotools_prop_select'] = 'Список полей для выборки, через запятую. Можно указывать JSON строку с массивом, например {"modResource":"id,pagetitle,content"}.';
-$_lang['pdotools_prop_loadModels'] = 'Список компонентов, через запятую, чьи модели нужно загрузить для построения запроса. Например: "&loadModels=`ms2gallery,msearch2`".';
+$_lang['pdotools_prop_loadModels'] = 'Список компонентов, через запятую, чьи модели нужно загрузить для построения запроса. Например: "&loadModels=`minishop3,tickets`".';
 $_lang['pdotools_prop_direction'] = 'Направление навигации: слева направо (ltr) или справа налево (rtl), например для Арабского языка.';
 $_lang['pdotools_prop_id'] = 'Идентификатор ресурса.';
 $_lang['pdotools_prop_field'] = 'Поле ресурса.';
