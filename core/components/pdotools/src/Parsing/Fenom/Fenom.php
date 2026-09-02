@@ -48,7 +48,8 @@ class Fenom extends \Fenom
             'force_include' => !$pdoTools->config('useFenomCache'),
             'auto_reload' => $pdoTools->config('useFenomCache'),
         ];
-        if ($options = json_decode($modx->getOption('pdotools_fenom_options'), true)) {
+        $rawOptions = $modx->getOption('pdotools_fenom_options');
+        if (is_string($rawOptions) && $rawOptions !== '' && ($options = json_decode($rawOptions, true))) {
             $options = array_merge($default_options, $options);
         } else {
             $options = $default_options;
@@ -243,7 +244,7 @@ class Fenom extends \Fenom
                 'number' => 'number_format',
                 'reset' => 'reset',
                 'end' => 'end',
-                
+
                 // Casts
                 'boolval' => 'boolval',
                 'doubleval' => 'doubleval',

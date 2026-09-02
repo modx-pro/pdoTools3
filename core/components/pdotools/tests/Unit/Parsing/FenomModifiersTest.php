@@ -1,0 +1,42 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ModxPro\PdoTools\Tests\Unit\Parsing;
+
+use ModxPro\PdoTools\Tests\TestCase;
+
+class FenomModifiersTest extends TestCase
+{
+    /**
+     * One case per default pdoTools modifier family, not every alias.
+     *
+     * @return array<string, array{0:string,1:string,2:array<string, mixed>}>
+     */
+    public function modifierProvider(): array
+    {
+        return [
+            'intval' => ['42', '{$v|intval}', ['v' => '42.8']],
+            'boolval' => ['1', '{$v|boolval}', ['v' => '1']],
+            'strval' => ['9', '{$v|strval}', ['v' => 9]],
+            'floatval' => ['1.5', '{$v|floatval}', ['v' => '1.5']],
+            'lower' => ['ada', '{$v|lower}', ['v' => 'ADA']],
+            'upper' => ['ADA', '{$v|upper}', ['v' => 'ada']],
+            'md5' => [md5('x'), '{$v|md5}', ['v' => 'x']],
+            'nl2br' => ["a<br />\nb", '{$v|nl2br}', ['v' => "a\nb"]],
+            'notags' => ['hi', '{$v|notags}', ['v' => '<b>hi</b>']],
+            'htmlentities' => ['&lt;b&gt;', '{$v|htmlentities}', ['v' => '<b>']],
+            'limit' => ['Hel', '{$v|limit:3}', ['v' => 'Hello']],
+            'esc' => ['&#91;x&#93;', '{$v|esc}', ['v' => '[x]']],
+        ];
+    }
+
+    /**
+     * @dataProvider modifierProvider
+     * @param array<string, mixed> $vars
+     */
+    public function testDefaultModifier(string $expected, string $code, array $vars): void
+    {
+        $this->assertRender($expected, $code, $vars);
+    }
+}

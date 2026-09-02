@@ -1,10 +1,32 @@
 ## pdoTools
 
-pdoTools 3 is a set of everyday [MODX Revolution](https://modx.com/) 3 snippets plus a small library that keeps them fast. Queries are built with xPDO and run through PDO. Elements can live in the database or in files. Tickets and [MiniShop3](https://github.com/modx-pro/MiniShop3) use it.
+[![Tests](https://github.com/modx-pro/pdoTools3/actions/workflows/phpunit.yml/badge.svg)](https://github.com/modx-pro/pdoTools3/actions/workflows/phpunit.yml)
+[![PHP](https://img.shields.io/badge/php-8.1%20%7C%208.2%20%7C%208.3%20%7C%208.4-777BB4)](https://github.com/modx-pro/pdoTools3/actions/workflows/phpunit.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/modx-pro/pdoTools3)](https://codecov.io/gh/modx-pro/pdoTools3)
 
-This branch requires **MODX 3** and **PHP 7.2+**. For MODX 2 use [pdoTools 2.x](https://github.com/modx-pro/pdoTools).
+pdoTools 3 is a set of everyday [MODX Revolution](https://modx.com/) 3 snippets plus a small library that keeps them fast. Queries are built with xPDO and run through PDO. Elements can live in the database or in files. [MiniShop3](https://github.com/modx-pro/MiniShop3) use it.
+
+This branch requires **MODX 3** and **PHP 8.1+**. For MODX 2 use [pdoTools 2.x](https://github.com/modx-pro/pdoTools).
 
 **Documentation:** [docs.modx.pro/components/pdotools](https://docs.modx.pro/components/pdotools/)
+
+### Tests
+
+From `core/components/pdotools`:
+
+```bash
+composer install
+composer test
+```
+
+Integration tests need a live MODX 3 tree (CI installs 3.2.4-pl and the transport with `PKG_AUTO_INSTALL=true`):
+
+```bash
+export MODX_TEST_BASE=/path/to/modx/
+composer test:integration
+```
+
+Coverage (pcov or xdebug): `composer test:coverage`. HTML report lands in `coverage/html`.
 
 ### Advantages
 

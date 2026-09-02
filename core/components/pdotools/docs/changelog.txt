@@ -7,6 +7,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- PHPUnit 9.6 harness (Unit + Integration) and GitHub Actions on PHP 8.1, 8.2, 8.3, 8.4.
 - [#306] [pdoMenu] Added the "children" placeholder to tplInner.
 - [#355] [Fenom] Added type cast modifiers: boolval, doubleval, floatval, intval, strval.
 - [#356] [Fenom] Enabled the array_merge modifier by default.
@@ -16,6 +17,8 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
+- PHP requirement is now 8.1+. Unit and integration tests run on 8.1, 8.2, 8.3 and 8.4.
+- [Fenom] Skip json_decode() when pdotools_fenom_options is empty (PHP 8.3).
 - [pdoTools3#9] [pdoFetch] Extra categories use MiniShop3 (`MiniShop3\Model\msCategoryMember`). miniShop2 class names and `&disableMS2` are removed. Use `&disableMS3` to skip extra categories.
 - [#377] [pdoPage] Mark AJAX requests as connector mode via MODX_CONNECTOR_INCLUDED.
 

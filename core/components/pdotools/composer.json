@@ -16,17 +16,42 @@
         }
     ],
     "type": "library",
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
+    "prefer-stable": true,
     "autoload": {
         "psr-4": {
             "ModxPro\\PdoTools\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "ModxPro\\PdoTools\\Tests\\": "tests/"
+        }
+    },
     "require": {
-        "php": ">=7.2",
+        "php": ">=8.1",
         "fenom/fenom": "^2.11"
     },
     "require-dev": {
-        "modx/revolution": "3.x-dev"
+        "phpunit/phpunit": "^9.6",
+        "modx/revolution": "3.2.4-pl"
+    },
+    "config": {
+        "platform": {
+            "php": "8.1.31"
+        },
+        "audit": {
+            "block-insecure": false,
+            "ignore": [
+                "PKSA-7k8y-pxvq-y5kc",
+                "GHSA-674v-3g2w-84gx"
+            ]
+        }
+    },
+    "scripts": {
+        "test": "phpunit --configuration phpunit.xml.dist --testsuite Unit",
+        "test:integration": "phpunit --configuration phpunit.xml.dist --testsuite Integration",
+        "test:all": "phpunit --configuration phpunit.xml.dist",
+        "test:coverage": "phpunit --configuration phpunit.xml.dist --testsuite Unit --coverage-clover coverage/clover.xml --coverage-html coverage/html"
     }
 }

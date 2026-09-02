@@ -2,3 +2,6 @@ config.core.php
 .idea
 node_modules
 /core/components/pdotools/vendor/
+/core/components/pdotools/.phpunit.cache
+/core/components/pdotools/coverage/
+/core/components/pdotools/tests/tmp/
