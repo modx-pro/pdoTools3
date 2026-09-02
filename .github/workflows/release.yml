@@ -137,7 +137,7 @@ jobs:
                   sys.exit(1)
               for name in manifests:
                   data = zf.read(name)
-                  if expected not in data:
+                  if needle not in data:
                       print(f'ERROR: MODX 3 namespaced vehicle class missing in {name}', file=sys.stderr)
                       sys.exit(1)
                   print(f'OK: {name} uses xPDO\\Transport\\xPDOObjectVehicle')
