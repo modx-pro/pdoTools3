@@ -54,6 +54,7 @@ namespace MODX\Revolution {
             public $user;
             public $context;
             public $resource;
+            public $cacheManager;
             /** @var \ModxPro\PdoTools\Tests\Stubs\ServiceBag */
             public $services;
             /** @var array<string, mixed> */
@@ -248,6 +249,8 @@ namespace xPDO {
             public const LOG_LEVEL_INFO = 2;
             public const LOG_LEVEL_DEBUG = 3;
             public const OPT_CACHE_KEY = 'cache_key';
+            public const OPT_CACHE_HANDLER = 'cache_handler';
+            public const OPT_CACHE_EXPIRES = 'cache_expires';
         }
     }
 }

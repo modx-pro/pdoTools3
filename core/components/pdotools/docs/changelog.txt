@@ -33,6 +33,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - [pdoTools3#16] [pdoCrumbs] Fixed [] operator on string &parents when showHome is enabled.
 - [#384] [pdoFetch] Fixed warning when preparing where/having condition for the log message.
 - [#384] [pdoPage] Fixed too strict page comparison in the paginator (integer vs float).
+- [pdoTools3#24] [pdoTools] Snippet result cache keys include the current context so web and extra contexts no longer share one entry.
 
 ## [3.0.3-pl2] - 2026-06-23
 

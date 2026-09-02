@@ -12,6 +12,7 @@ use MODX\Revolution\modSnippet;
 use MODX\Revolution\modTemplateVar;
 use MODX\Revolution\Sources\modFileMediaSource;
 use ModxPro\PdoTools\Parsing\Fenom\Fenom;
+use ModxPro\PdoTools\Support\CacheKey;
 
 
 class CoreTools
@@ -1087,21 +1088,19 @@ class CoreTools
      */
     public function getCache($options = [])
     {
-        $cacheKey = $this->getCacheKey($options);
-        $cacheOptions = $this->getCacheOptions($options);
+        return $this->readCache($this->getCacheKey($options), $this->getCacheOptions($options));
+    }
 
-        $cached = '';
-        if (!empty($cacheOptions) && !empty($cacheKey) && $this->modx->getCacheManager()) {
-            if ($cached = $this->modx->cacheManager->get($cacheKey, $cacheOptions)) {
-                $this->addTime('Retrieved data from cache "' . $cacheOptions[xPDO::OPT_CACHE_KEY] . '/' . $cacheKey . '"');
-            } else {
-                $this->addTime('No cached data for key "' . $cacheOptions[xPDO::OPT_CACHE_KEY] . '/' . $cacheKey . '"');
-            }
-        } else {
-            $this->addTime('Could not check cached data for key "' . $cacheOptions[xPDO::OPT_CACHE_KEY] . '/' . $cacheKey . '"');
-        }
-
-        return $cached;
+    /**
+     * Read a cache entry by exact key, without a context suffix.
+     * Used for Fenom compile dumps that are source-based, not request-based.
+     *
+     * @param string $key
+     * @return mixed
+     */
+    public function getExactCache($key)
+    {
+        return $this->readCache($key, $this->getCacheOptions(['cache_key' => $key]));
     }
 
 
@@ -1115,20 +1114,19 @@ class CoreTools
      */
     public function setCache($data = [], $options = [])
     {
-        $cacheKey = $this->getCacheKey($options);
-        $cacheOptions = $this->getCacheOptions($options);
+        return $this->writeCache($this->getCacheKey($options), $data, $this->getCacheOptions($options));
+    }
 
-        if (!empty($cacheKey) && !empty($cacheOptions) && $this->modx->getCacheManager()) {
-            $this->modx->cacheManager->set(
-                $cacheKey,
-                $data,
-                $cacheOptions[xPDO::OPT_CACHE_EXPIRES],
-                $cacheOptions
-            );
-            $this->addTime('Saved data to cache "' . $cacheOptions[xPDO::OPT_CACHE_KEY] . '/' . $cacheKey . '"');
-        }
-
-        return $cacheKey;
+    /**
+     * Write a cache entry by exact key, without a context suffix.
+     *
+     * @param string $key
+     * @param mixed $data
+     * @return string
+     */
+    public function setExactCache($key, $data)
+    {
+        return $this->writeCache($key, $data, $this->getCacheOptions(['cache_key' => $key]));
     }
 
 
@@ -1235,7 +1233,7 @@ class CoreTools
      *
      * @var mixed $options
      *
-     * @return bool|string
+     * @return string
      */
     protected function getCacheKey($options = [])
     {
@@ -1244,21 +1242,76 @@ class CoreTools
         }
 
         if (!empty($options['cache_key'])) {
-            return $options['cache_key'];
+            $key = $options['cache_key'];
         } elseif (!empty($options['cacheKey'])) {
-            return $options['cacheKey'];
+            $key = $options['cacheKey'];
+        } else {
+            $key = !empty($this->modx->resource)
+                ? $this->modx->resource->getCacheKey()
+                : '';
+            if (is_array($options)) {
+                $options['cache_user'] = isset($options['cache_user'])
+                    ? (int)$options['cache_user']
+                    : $this->modx->user->id;
+            }
+            $key .= '/' . sha1(serialize($options));
         }
 
-        $key = !empty($this->modx->resource)
-            ? $this->modx->resource->getCacheKey()
-            : '';
-        if (is_array($options)) {
-            $options['cache_user'] = isset($options['cache_user'])
-                ? (int)$options['cache_user']
-                : $this->modx->user->id;
+        return CacheKey::withContext($key, $this->currentContextKey());
+    }
+
+    /**
+     * @return string
+     */
+    protected function currentContextKey()
+    {
+        if (!is_object($this->modx->context) || empty($this->modx->context->key)) {
+            return '';
         }
 
-        return $key . '/' . sha1(serialize($options));
+        return (string)$this->modx->context->key;
+    }
+
+    /**
+     * @param string $cacheKey
+     * @param array $cacheOptions
+     * @return mixed
+     */
+    protected function readCache($cacheKey, array $cacheOptions)
+    {
+        $cached = '';
+        if (!empty($cacheOptions) && !empty($cacheKey) && $this->modx->getCacheManager()) {
+            if ($cached = $this->modx->cacheManager->get($cacheKey, $cacheOptions)) {
+                $this->addTime('Retrieved data from cache "' . $cacheOptions[xPDO::OPT_CACHE_KEY] . '/' . $cacheKey . '"');
+            } else {
+                $this->addTime('No cached data for key "' . $cacheOptions[xPDO::OPT_CACHE_KEY] . '/' . $cacheKey . '"');
+            }
+        } else {
+            $this->addTime('Could not check cached data for key "' . $cacheOptions[xPDO::OPT_CACHE_KEY] . '/' . $cacheKey . '"');
+        }
+
+        return $cached;
+    }
+
+    /**
+     * @param string $cacheKey
+     * @param mixed $data
+     * @param array $cacheOptions
+     * @return string
+     */
+    protected function writeCache($cacheKey, $data, array $cacheOptions)
+    {
+        if (!empty($cacheKey) && !empty($cacheOptions) && $this->modx->getCacheManager()) {
+            $this->modx->cacheManager->set(
+                $cacheKey,
+                $data,
+                $cacheOptions[xPDO::OPT_CACHE_EXPIRES],
+                $cacheOptions
+            );
+            $this->addTime('Saved data to cache "' . $cacheOptions[xPDO::OPT_CACHE_KEY] . '/' . $cacheKey . '"');
+        }
+
+        return $cacheKey;
     }
 
 

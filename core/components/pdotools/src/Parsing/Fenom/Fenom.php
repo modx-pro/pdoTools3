@@ -105,12 +105,10 @@ class Fenom extends \Fenom
         /** @var \Fenom\Template $tpl */
         if (!$tpl = $this->pdoTools->getStore($name, 'fenom')) {
             if (!empty($this->pdoTools->config('useFenomCache'))) {
-                $cache_options = [
-                    'cache_key' => 'pdotools/' . $name,
-                ];
-                if (!$cache = $this->pdoTools->getCache($cache_options)) {
+                $compileKey = 'pdotools/' . $name;
+                if (!$cache = $this->pdoTools->getExactCache($compileKey)) {
                     if ($tpl = $this->_compileChunk($content, $name)) {
-                        $this->pdoTools->setCache($tpl->getTemplateCode(), $cache_options);
+                        $this->pdoTools->setExactCache($compileKey, $tpl->getTemplateCode());
                     }
                 } else {
                     $cache = preg_replace('#^<\?php#', '', $cache);
@@ -190,7 +188,7 @@ class Fenom extends \Fenom
             $this->modx->log(modX::LOG_LEVEL_ERROR, $e->getMessage());
             $this->modx->log(modX::LOG_LEVEL_INFO, $content);
             if ($this->modx->getOption('pdotools_fenom_save_on_errors')) {
-                $this->pdoTools->setCache($content, ['cache_key' => 'error/' . $name]);
+                $this->pdoTools->setExactCache('error/' . $name, $content);
             }
             $tpl = $this->getRawTemplate()->source($name, '', false);
             $this->pdoTools->addTime('Can`t compile Fenom chunk with name "' . $name . '": ' . $e->getMessage());
