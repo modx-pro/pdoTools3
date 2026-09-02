@@ -1,6 +1,6 @@
 Changelog for pdoTools.
 
-3.0.3-pl (01.09.2026)
+3.0.4-pl (01.09.2026)
 ==============
 - [#302] [pdoPage] Fixed button ajaxMode, hiding the more button when there are no results, and restoring it in force mode.
 - [#305] [pdoMenu] Fixed notices on missing class_key and content for weblinks.
@@ -10,6 +10,10 @@ Changelog for pdoTools.
 - [#377] [pdoPage] Mark AJAX requests as connector mode via MODX_CONNECTOR_INCLUDED.
 - [#392] [pdoPage] Snippet properties are available as placeholders in pagination templates.
 - Added GitHub Actions release workflow for 3.x transport packages.
+
+3.0.3-pl2 (23.06.2026)
+==============
+- Add vendor directory.
 
 3.0.2-pl (11.04.2023)
 ==============
