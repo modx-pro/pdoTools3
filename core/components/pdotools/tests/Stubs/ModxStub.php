@@ -51,6 +51,11 @@ namespace MODX\Revolution {
     if (!class_exists(modX::class, false)) {
         class modX
         {
+            public const LOG_LEVEL_ERROR = 0;
+            public const LOG_LEVEL_WARN = 1;
+            public const LOG_LEVEL_INFO = 2;
+            public const LOG_LEVEL_DEBUG = 3;
+
             public $user;
             public $context;
             public $resource;
@@ -88,6 +93,12 @@ namespace MODX\Revolution {
             {
                 if (is_array($options) && array_key_exists($key, $options)) {
                     $value = $options[$key];
+                    if (!$skipEmpty || ($value !== '' && $value !== null)) {
+                        return $value;
+                    }
+                }
+                if (array_key_exists($key, $this->config)) {
+                    $value = $this->config[$key];
                     if (!$skipEmpty || ($value !== '' && $value !== null)) {
                         return $value;
                     }

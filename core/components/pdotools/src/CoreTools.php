@@ -723,6 +723,7 @@ class CoreTools
         }
 
         $properties = [];
+        $sourceFile = '';
         /** @var modElement $element */
         switch ($binding) {
             case 'CODE':
@@ -765,6 +766,7 @@ class CoreTools
 
                     return false;
                 }
+                $sourceFile = $path;
                 if ($content = file_get_contents($path)) {
                     $element = $this->modx->newObject($type, ['name' => $cache_name]);
                     $element->setContent($content);
@@ -820,6 +822,16 @@ class CoreTools
             return false;
         }
 
+        if ($sourceFile === '' && $element instanceof modElement && method_exists($element, 'isStatic') && $element->isStatic()) {
+            $file = $element->getSourceFile();
+            if (!empty($file)) {
+                $sourceFile = $file;
+            }
+        }
+        $elementName = $type === 'modTemplate'
+            ? (string)$element->get('templatename')
+            : (string)$element->get('name');
+
         $data = [
             'object' => $element,
             'content' => $content,
@@ -827,7 +839,10 @@ class CoreTools
             'name' => $cache_name,
             'id' => (int)$element->get('id'),
             'binding' => strtolower($type),
+            'origin' => $binding,
             'cacheable' => $cacheable,
+            'elementName' => $elementName,
+            'sourceFile' => $sourceFile,
         ];
         $this->setStore($cache_key, $data, $type);
 
