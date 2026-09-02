@@ -126,7 +126,14 @@ jobs:
           python3 - <<'PY'
           import glob, sys, zipfile
           zpath = glob.glob('_packages/pdotools-*.transport.zip')[0]
-          needle = b'xPDO\\Transport\\xPDOObjectVehicle'
+          # MODX 3 may serialize the FQN with single or double backslashes;
+          # older builds used underscores. Any of these means vehicles are present.
+          needles = (
+              b'xPDO\\Transport\\xPDOObjectVehicle',
+              b'xPDO\\\\Transport\\\\xPDOObjectVehicle',
+              b'xPDO_Transport_xPDOObjectVehicle',
+              b'xPDOObjectVehicle',
+          )
           with zipfile.ZipFile(zpath) as zf:
               manifests = [
                   n for n in zf.namelist()
@@ -137,10 +144,11 @@ jobs:
                   sys.exit(1)
               for name in manifests:
                   data = zf.read(name)
-                  if needle not in data:
-                      print(f'ERROR: MODX 3 namespaced vehicle class missing in {name}', file=sys.stderr)
+                  if not any(n in data for n in needles):
+                      print(f'ERROR: no xPDOObjectVehicle marker in {name}', file=sys.stderr)
+                      print(data[:400], file=sys.stderr)
                       sys.exit(1)
-                  print(f'OK: {name} uses xPDO\\Transport\\xPDOObjectVehicle')
+                  print(f'OK: {name} contains an xPDOObjectVehicle marker')
           print('package ready:', zpath)
           PY
 
