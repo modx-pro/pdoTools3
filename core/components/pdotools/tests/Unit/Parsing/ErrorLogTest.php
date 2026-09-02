@@ -4,96 +4,138 @@ declare(strict_types=1);
 
 namespace ModxPro\PdoTools\Tests\Unit\Parsing;
 
-use ErrorException;
 use Exception;
 use ModxPro\PdoTools\Parsing\Fenom\ErrorLog;
 use PHPUnit\Framework\TestCase;
 
 class ErrorLogTest extends TestCase
 {
-    public function testLooksLikeHash(): void
-    {
-        $this->assertTrue(ErrorLog::looksLikeHash(md5('chunk')));
-        $this->assertFalse(ErrorLog::looksLikeHash('my-chunk'));
-        $this->assertFalse(ErrorLog::looksLikeHash('modchunk/12'));
-    }
-
-    public function testExcerptMarksTheLine(): void
-    {
-        $content = "one\ntwo\n{var \$x = [[+limit]]}\nfour";
-        $excerpt = ErrorLog::excerpt($content, 3, 1);
-
-        $this->assertStringContainsString('> 3:', $excerpt);
-        $this->assertStringContainsString('[[+limit]]', $excerpt);
-        $this->assertStringContainsString(' 2: two', $excerpt);
-    }
-
-    public function testExcerptRejectsMissingLine(): void
-    {
-        $this->assertSame('', ErrorLog::excerpt("one\ntwo", 9));
-        $this->assertSame('', ErrorLog::excerpt('', 1));
-        $this->assertSame('', ErrorLog::excerpt('one', 0));
-    }
-
-    public function testModxHintNamesThePlaceholder(): void
-    {
-        $hint = ErrorLog::modxHint('{var $limit = [[+limit]]}');
-        $this->assertStringContainsString('{$limit}', $hint);
-    }
-
-    public function testModxHintGenericWhenTagHasNoName(): void
-    {
-        $hint = ErrorLog::modxHint('[[$other]]');
-        $this->assertStringContainsString('{$placeholder}', $hint);
-    }
-
-    public function testHasUnprocessedModx(): void
-    {
-        $this->assertTrue(ErrorLog::hasUnprocessedModx('[[+limit]]'));
-        $this->assertTrue(ErrorLog::hasUnprocessedModx('[[*pagetitle]]'));
-        $this->assertFalse(ErrorLog::hasUnprocessedModx('{$limit}'));
-    }
-
-    public function testReplaceTemplateNameKeepsHashOutOfTheMessage(): void
-    {
-        $hash = 'ee058690d9fd7413748b95b0960e006b';
-        $message = "Unexpected token '+' in expression in {$hash} line 6, near '{var \$limit = [[+' <- there";
-        $replaced = ErrorLog::replaceTemplateName($message, $hash, 'chunk:tpl.product.row (#12)');
-
-        $this->assertStringContainsString('chunk:tpl.product.row (#12)', $replaced);
-        $this->assertStringNotContainsString($hash, $replaced);
-    }
-
-    public function testReplaceTemplateNameLeavesMessageWhenLabelMatchesName(): void
-    {
-        $message = 'error in inline line 1';
-        $this->assertSame($message, ErrorLog::replaceTemplateName($message, 'inline', 'inline'));
-    }
-
-    public function testExtractLineFromMessage(): void
-    {
-        $e = new Exception("Unexpected token '+' in expression in chunk:row line 6, near '{var'");
-        $this->assertSame(6, ErrorLog::extractLine($e));
-    }
-
-    public function testExtractNear(): void
+    public function testLabelForNamedChunk(): void
     {
         $this->assertSame(
-            '{var $limit = [[+',
-            ErrorLog::extractNear("near '{var \$limit = [[+' <- there")
+            'chunk:tpl.product.row (#12)',
+            ErrorLog::label([
+                'binding' => 'modchunk',
+                'id' => 12,
+                'elementName' => 'tpl.product.row',
+            ], 'modchunk/12')
         );
-        $this->assertSame('', ErrorLog::extractNear('no near clause'));
     }
 
-    public function testRelativePathUsesCorePrefix(): void
+    public function testLabelForFileAndInlineOrigins(): void
     {
-        $path = rtrim(str_replace('\\', '/', MODX_CORE_PATH), '/') . '/cache/pdotools/error/foo';
-        $this->assertSame('core/cache/pdotools/error/foo', ErrorLog::relativePath($path));
+        $file = rtrim(str_replace('\\', '/', MODX_CORE_PATH), '/') . '/elements/chunks/item.tpl';
+        $this->assertSame(
+            'file:core/elements/chunks/item.tpl',
+            ErrorLog::label([
+                'binding' => 'modchunk',
+                'origin' => 'FILE',
+                'sourceFile' => $file,
+            ], 'modchunk/' . md5('file'))
+        );
+        $this->assertSame(
+            'inline',
+            ErrorLog::label(['binding' => 'modchunk', 'origin' => 'INLINE'], 'inline')
+        );
     }
 
-    public function testExtractLineFromErrorExceptionWithoutPhpFile(): void
+    public function testLabelFallsBackToFileWithoutOrigin(): void
     {
-        $e = new ErrorException('boom', 0, E_ERROR, 'inline-template', 4);
-        $this->assertSame(4, ErrorLog::extractLine($e));
+        $file = rtrim(str_replace('\\', '/', MODX_CORE_PATH), '/') . '/elements/chunks/item.tpl';
+        $this->assertSame(
+            'file:core/elements/chunks/item.tpl',
+            ErrorLog::label([
+                'binding' => 'modchunk',
+                'sourceFile' => $file,
+            ], 'modchunk/' . md5('file'))
+        );
+    }
+
+    public function testLabelForResourceWithTemplate(): void
+    {
+        $this->assertSame(
+            'resource:#42 (web:catalog/item), template:#5',
+            ErrorLog::label([
+                'resourceId' => 42,
+                'resourceContext' => 'web',
+                'resourceUri' => 'catalog/item',
+                'templateId' => 5,
+            ], md5('page'))
+        );
+    }
+
+    public function testFormatReplacesHashAndAddsHint(): void
+    {
+        $hash = 'ee058690d9fd7413748b95b0960e006b';
+        $content = "one\ntwo\nthree\nfour\nfive\n{var \$limit = [[+limit]]}\nseven";
+        $e = new Exception(
+            "Unexpected token '+' in expression in {$hash} line 6, near '{var \$limit = [[+' <- there"
+        );
+        $message = ErrorLog::format(
+            $e,
+            $hash,
+            $content,
+            'chunk:tpl.product.row (#12)',
+            'compile'
+        );
+
+        $this->assertStringContainsString('[pdoTools][Fenom] compile error in chunk:tpl.product.row (#12)', $message);
+        $this->assertStringContainsString('cache name: ' . $hash, $message);
+        $this->assertStringContainsString('chunk:tpl.product.row (#12) line 6', $message);
+        $this->assertStringNotContainsString(' in ' . $hash . ' ', $message);
+        $this->assertStringContainsString('> 6:', $message);
+        $this->assertStringContainsString('{$limit}', $message);
+    }
+
+    public function testFormatAddsResourceLineAndSourceDump(): void
+    {
+        $hash = md5('broken');
+        $e = new Exception("Unexpected token '+' in expression in {$hash} line 1, near '{var'");
+        $dump = rtrim(str_replace('\\', '/', MODX_CORE_PATH), '/') . '/cache/pdotools/error/' . $hash;
+        $message = ErrorLog::format(
+            $e,
+            $hash,
+            '{var $limit = [[+limit]]}',
+            'inline',
+            'compile',
+            [
+                'resource' => [
+                    'resourceId' => 42,
+                    'resourceContext' => 'web',
+                    'resourceUri' => 'catalog/item',
+                ],
+                'sourceDump' => $dump,
+            ]
+        );
+
+        $this->assertStringContainsString('resource:#42 (web:catalog/item)', $message);
+        $this->assertStringContainsString('source dump: core/cache/pdotools/error/' . $hash, $message);
+        $this->assertStringContainsString('{$limit}', $message);
+    }
+
+    public function testFormatSkipsResourceLineWhenLabelIsResource(): void
+    {
+        $e = new Exception('syntax error near token');
+        $message = ErrorLog::format(
+            $e,
+            md5('x'),
+            '{var $x = 1}',
+            'resource:#1 (web:home), template:#2',
+            'compile',
+            [
+                'resource' => [
+                    'resourceId' => 1,
+                    'resourceContext' => 'web',
+                    'resourceUri' => 'home',
+                ],
+            ]
+        );
+
+        $lines = explode("\n", $message);
+        $resourceLines = array_filter($lines, static function ($line) {
+            return strpos($line, 'resource:#') === 0;
+        });
+        $this->assertCount(0, $resourceLines);
+        $this->assertStringContainsString('compile error in resource:#1 (web:home), template:#2', $message);
     }
 }

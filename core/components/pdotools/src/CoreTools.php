@@ -839,83 +839,14 @@ class CoreTools
             'name' => $cache_name,
             'id' => (int)$element->get('id'),
             'binding' => strtolower($type),
+            'origin' => $binding,
             'cacheable' => $cacheable,
             'elementName' => $elementName,
             'sourceFile' => $sourceFile,
-            'sourceLabel' => $this->buildElementSourceLabel($type, $binding, $element, $elementName, $sourceFile),
         ];
         $this->setStore($cache_key, $data, $type);
 
         return $data;
-    }
-
-    /**
-     * Label for Fenom error logs. Not used as a cache key.
-     *
-     * @param string $type
-     * @param string $binding
-     * @param modElement $element
-     * @param string $elementName
-     * @param string $sourceFile
-     * @return string
-     */
-    protected function buildElementSourceLabel($type, $binding, $element, $elementName, $sourceFile)
-    {
-        $kinds = [
-            'modChunk' => 'chunk',
-            'modTemplate' => 'template',
-            'modSnippet' => 'snippet',
-        ];
-        $kind = isset($kinds[$type]) ? $kinds[$type] : 'element';
-        $id = is_object($element) ? (int)$element->get('id') : 0;
-        $file = $this->toLogPath($sourceFile);
-        $isHash = is_string($elementName) && (bool)preg_match('/^[a-f0-9]{32}$/i', $elementName);
-
-        if ($binding === 'FILE' && $file !== '') {
-            return 'file:' . $file;
-        }
-        if ($binding === 'INLINE' || $binding === 'CODE') {
-            return 'inline';
-        }
-        if ($elementName !== '' && !$isHash) {
-            $label = $kind . ':' . $elementName;
-            if ($id > 0) {
-                $label .= ' (#' . $id . ')';
-            }
-            if ($file !== '') {
-                $label .= ' file:' . $file;
-            }
-
-            return $label;
-        }
-        if ($id > 0) {
-            return $kind . ':#' . $id;
-        }
-        if ($file !== '') {
-            return 'file:' . $file;
-        }
-
-        return $kind;
-    }
-
-    /**
-     * @param string $path
-     * @return string
-     */
-    protected function toLogPath($path)
-    {
-        if (!is_string($path) || $path === '') {
-            return '';
-        }
-        $path = str_replace('\\', '/', $path);
-        if (defined('MODX_CORE_PATH') && MODX_CORE_PATH !== '' && strpos($path, str_replace('\\', '/', MODX_CORE_PATH)) === 0) {
-            return 'core/' . ltrim(substr($path, strlen(str_replace('\\', '/', MODX_CORE_PATH))), '/');
-        }
-        if (defined('MODX_BASE_PATH') && MODX_BASE_PATH !== '' && strpos($path, str_replace('\\', '/', MODX_BASE_PATH)) === 0) {
-            return ltrim(substr($path, strlen(str_replace('\\', '/', MODX_BASE_PATH))), '/');
-        }
-
-        return $path;
     }
 
     /**

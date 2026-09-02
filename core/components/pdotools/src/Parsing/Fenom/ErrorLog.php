@@ -2,20 +2,175 @@
 
 namespace ModxPro\PdoTools\Parsing\Fenom;
 
-use ErrorException;
 use Throwable;
 
 /**
- * Formats Fenom compile/runtime errors for the MODX log.
- * Does not change template names or cache keys.
+ * Builds Fenom error labels and log messages. Does not change cache keys.
  */
 class ErrorLog
 {
     /**
+     * Human-readable source from element/resource facts.
+     *
+     * Expected keys: binding (modchunk|…), origin (FILE|INLINE|CODE|''),
+     * elementName, sourceFile, id, name, resourceId, resourceUri,
+     * resourceContext, templateId.
+     *
+     * @param array $source
+     * @param string $cacheName Fenom template / store name
+     * @return string
+     */
+    public static function label(array $source, $cacheName = '')
+    {
+        $origin = isset($source['origin']) ? strtoupper((string)$source['origin']) : '';
+        $binding = isset($source['binding']) ? (string)$source['binding'] : '';
+        $id = !empty($source['id']) ? (int)$source['id'] : 0;
+        $elementName = isset($source['elementName']) ? (string)$source['elementName'] : '';
+        if (
+            $elementName === ''
+            && !empty($source['name'])
+            && !self::looksLikeHash((string)$source['name'])
+        ) {
+            $elementName = (string)$source['name'];
+        }
+        $file = self::relativePath(isset($source['sourceFile']) ? (string)$source['sourceFile'] : '');
+        $kind = self::elementKind($binding);
+
+        if ($origin === 'FILE' && $file !== '') {
+            return 'file:' . $file;
+        }
+        if ($origin === 'INLINE' || $origin === 'CODE') {
+            return 'inline';
+        }
+        if ($elementName !== '' && !self::looksLikeHash($elementName)) {
+            $label = $kind !== '' ? $kind . ':' . $elementName : $elementName;
+            if ($id > 0) {
+                $label .= ' (#' . $id . ')';
+            }
+            if ($file !== '') {
+                $label .= ' file:' . $file;
+            }
+
+            return $label;
+        }
+        if ($id > 0) {
+            return ($kind !== '' ? $kind : 'element') . ':#' . $id;
+        }
+        if ($file !== '') {
+            return 'file:' . $file;
+        }
+
+        $resource = self::formatResource($source);
+        if ($resource !== '') {
+            return $resource;
+        }
+
+        return $cacheName !== '' ? $cacheName : 'unknown';
+    }
+
+    /**
+     * Full MODX / &showLog error block.
+     *
+     * @param Throwable $e
+     * @param string $cacheName
+     * @param string $content
+     * @param string $label
+     * @param string $phase compile|runtime
+     * @param array $extra compiled, sourceDump (paths), resource (facts for a second line)
+     * @return string
+     */
+    public static function format(Throwable $e, $cacheName, $content, $label, $phase, array $extra = [])
+    {
+        if ($label === '') {
+            $label = $cacheName !== '' ? $cacheName : 'unknown';
+        }
+        $raw = self::replaceTemplateName($e->getMessage(), $cacheName, $label);
+        $line = self::extractLine($e);
+        $near = self::extractNear($e->getMessage());
+        $excerpt = self::excerpt($content, $line);
+        $hint = self::modxHint($near . "\n" . $excerpt);
+
+        $lines = [
+            '[pdoTools][Fenom] ' . $phase . ' error in ' . $label,
+        ];
+        if (!empty($extra['resource']) && is_array($extra['resource']) && strpos($label, 'resource:') !== 0) {
+            $resourceLine = self::formatResource($extra['resource']);
+            if ($resourceLine !== '') {
+                $lines[] = $resourceLine;
+            }
+        }
+        if ($cacheName !== '' && $cacheName !== $label) {
+            $lines[] = 'cache name: ' . $cacheName;
+        }
+        $lines[] = $raw;
+        if ($excerpt !== '') {
+            $lines[] = $excerpt;
+        }
+        if ($hint !== '') {
+            $lines[] = $hint;
+        }
+        if (!empty($extra['compiled'])) {
+            $compiled = self::relativePath((string)$extra['compiled']);
+            if ($compiled !== '') {
+                $lines[] = 'compiled: ' . $compiled;
+            }
+        }
+        if (!empty($extra['sourceDump'])) {
+            $dump = self::relativePath((string)$extra['sourceDump']);
+            if ($dump !== '') {
+                $lines[] = 'source dump: ' . $dump;
+            }
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * @param string $binding
+     * @return string
+     */
+    private static function elementKind($binding)
+    {
+        switch (strtolower((string)$binding)) {
+            case 'modchunk':
+                return 'chunk';
+            case 'modtemplate':
+                return 'template';
+            case 'modsnippet':
+                return 'snippet';
+            default:
+                return '';
+        }
+    }
+
+    /**
+     * @param array $source
+     * @return string
+     */
+    private static function formatResource(array $source)
+    {
+        if (!array_key_exists('resourceId', $source)) {
+            return '';
+        }
+        $id = (int)$source['resourceId'];
+        $ctx = isset($source['resourceContext']) ? (string)$source['resourceContext'] : '';
+        $uri = isset($source['resourceUri']) ? (string)$source['resourceUri'] : '';
+        $label = 'resource:#' . $id;
+        if ($ctx !== '' || $uri !== '') {
+            $label .= ' (' . $ctx . ':' . $uri . ')';
+        }
+        if (!empty($source['templateId'])) {
+            $label .= ', template:#' . (int)$source['templateId'];
+        }
+
+        return $label;
+    }
+
+    /**
      * @param string $value
      * @return bool
      */
-    public static function looksLikeHash($value)
+    private static function looksLikeHash($value)
     {
         return is_string($value) && (bool)preg_match('/^[a-f0-9]{32}$/i', $value);
     }
@@ -24,7 +179,7 @@ class ErrorLog
      * @param string $path
      * @return string
      */
-    public static function relativePath($path)
+    private static function relativePath($path)
     {
         if (!is_string($path) || $path === '') {
             return '';
@@ -44,16 +199,10 @@ class ErrorLog
      * @param Throwable $e
      * @return int
      */
-    public static function extractLine(Throwable $e)
+    private static function extractLine(Throwable $e)
     {
         if (preg_match('/\bline\s+(\d+)/i', $e->getMessage(), $m)) {
             return (int)$m[1];
-        }
-        if ($e instanceof ErrorException) {
-            $file = str_replace('\\', '/', (string)$e->getFile());
-            if ($file !== '' && substr($file, -4) !== '.php' && strpos($file, '/') === false) {
-                return (int)$e->getLine();
-            }
         }
 
         return 0;
@@ -63,7 +212,7 @@ class ErrorLog
      * @param string $message
      * @return string
      */
-    public static function extractNear($message)
+    private static function extractNear($message)
     {
         if (!is_string($message) || !preg_match("/near '([^']*)'/s", $message, $m)) {
             return '';
@@ -76,7 +225,7 @@ class ErrorLog
      * @param string $text
      * @return bool
      */
-    public static function hasUnprocessedModx($text)
+    private static function hasUnprocessedModx($text)
     {
         return is_string($text) && (bool)preg_match('/\[\[(?:\+|\*|\$|%|~|#|&)?/', $text);
     }
@@ -85,7 +234,7 @@ class ErrorLog
      * @param string $text
      * @return string
      */
-    public static function modxHint($text)
+    private static function modxHint($text)
     {
         if (!self::hasUnprocessedModx($text)) {
             return '';
@@ -103,7 +252,7 @@ class ErrorLog
      * @param int $radius
      * @return string
      */
-    public static function excerpt($content, $line, $radius = 2)
+    private static function excerpt($content, $line, $radius = 2)
     {
         if (!is_string($content) || $content === '' || $line < 1) {
             return '';
@@ -130,7 +279,7 @@ class ErrorLog
      * @param string $label
      * @return string
      */
-    public static function replaceTemplateName($message, $name, $label)
+    private static function replaceTemplateName($message, $name, $label)
     {
         if (!is_string($message) || $name === '' || $label === '' || $name === $label) {
             return $message;

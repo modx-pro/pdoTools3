@@ -103,12 +103,12 @@ class Fenom extends \Fenom
             $name = md5($content);
         }
         /** @var \Fenom\Template $tpl */
-        $label = $this->resolveSourceLabel($chunk, $name, $content);
+        $source = is_array($chunk) ? $chunk : [];
         if (!$tpl = $this->pdoTools->getStore($name, 'fenom')) {
             if (!empty($this->pdoTools->config('useFenomCache'))) {
                 $compileKey = 'pdotools/' . $name;
                 if (!$cache = $this->pdoTools->getExactCache($compileKey)) {
-                    if ($tpl = $this->_compileChunk($content, $name, $label)) {
+                    if ($tpl = $this->_compileChunk($content, $name, $source)) {
                         $this->pdoTools->setExactCache($compileKey, $tpl->getTemplateCode());
                     }
                 } else {
@@ -116,7 +116,7 @@ class Fenom extends \Fenom
                     $tpl = eval($cache);
                 }
             } else {
-                $tpl = $this->_compileChunk($content, $name, $label);
+                $tpl = $this->_compileChunk($content, $name, $source);
             }
             if ($tpl) {
                 $this->pdoTools->setStore($name, $tpl, 'fenom');
@@ -135,7 +135,7 @@ class Fenom extends \Fenom
             try {
                 $content = $tpl->fetch($properties);
             } catch (Exception $e) {
-                $this->logFenomError($e, $name, $content, $label, 'runtime');
+                $this->logFenomError($e, $name, $content, $source, 'runtime');
             }
         }
 
@@ -173,17 +173,14 @@ class Fenom extends \Fenom
      *
      * @param $content
      * @param string $name
-     * @param string $label
+     * @param array $source Element/resource facts for error labels
      *
      * @return \Fenom\Template
      */
-    protected function _compileChunk($content, $name = '', $label = '')
+    protected function _compileChunk($content, $name = '', array $source = [])
     {
         if (empty($name)) {
             $name = md5($content);
-        }
-        if ($label === '') {
-            $label = $name;
         }
         try {
             $tpl = $this->getRawTemplate()->source($name, $content, true);
@@ -192,7 +189,7 @@ class Fenom extends \Fenom
             if ($this->modx->getOption('pdotools_fenom_save_on_errors')) {
                 $this->pdoTools->setExactCache('error/' . $name, $content);
             }
-            $this->logFenomError($e, $name, $content, $label, 'compile');
+            $this->logFenomError($e, $name, $content, $source, 'compile');
             $tpl = $this->getRawTemplate()->source($name, '', false);
         }
 
@@ -200,176 +197,63 @@ class Fenom extends \Fenom
     }
 
     /**
-     * Human-readable source for logs. Cache keys still use $name.
-     *
-     * @param array|string $chunk
-     * @param string $name
-     * @param string $content
-     * @return string
-     */
-    protected function resolveSourceLabel($chunk, $name, $content)
-    {
-        if (is_array($chunk) && !empty($chunk['sourceLabel'])) {
-            return (string)$chunk['sourceLabel'];
-        }
-
-        $type = '';
-        $id = 0;
-        $elementName = '';
-        $sourceFile = '';
-        if (is_array($chunk)) {
-            $type = !empty($chunk['binding']) ? (string)$chunk['binding'] : '';
-            $id = !empty($chunk['id']) ? (int)$chunk['id'] : 0;
-            if (!empty($chunk['sourceFile'])) {
-                $sourceFile = ErrorLog::relativePath($chunk['sourceFile']);
-            }
-            if (!empty($chunk['elementName'])) {
-                $elementName = (string)$chunk['elementName'];
-            } elseif (!empty($chunk['name']) && !ErrorLog::looksLikeHash($chunk['name'])) {
-                $elementName = (string)$chunk['name'];
-            }
-        }
-
-        $kind = $this->elementKind($type);
-        if ($sourceFile !== '' && ($elementName === '' || ErrorLog::looksLikeHash($elementName))) {
-            return trim($kind . ' file:' . $sourceFile);
-        }
-        if ($elementName !== '') {
-            $label = $kind !== '' ? $kind . ':' . $elementName : $elementName;
-            if ($id > 0) {
-                $label .= ' (#' . $id . ')';
-            }
-            if ($sourceFile !== '') {
-                $label .= ' file:' . $sourceFile;
-            }
-
-            return $label;
-        }
-        if ($id > 0) {
-            return ($kind !== '' ? $kind : 'element') . ':#' . $id;
-        }
-
-        $page = $this->formatResourceContext();
-        if ($page !== '') {
-            return $page;
-        }
-
-        return $name !== '' ? $name : md5($content);
-    }
-
-    /**
-     * @param string $binding
-     * @return string
-     */
-    protected function elementKind($binding)
-    {
-        switch ($binding) {
-            case 'modchunk':
-            case 'modChunk':
-                return 'chunk';
-            case 'modtemplate':
-            case 'modTemplate':
-                return 'template';
-            case 'modsnippet':
-            case 'modSnippet':
-                return 'snippet';
-            default:
-                return '';
-        }
-    }
-
-    /**
-     * @return string
-     */
-    protected function formatResourceContext()
-    {
-        $resource = $this->modx->resource;
-        if (!is_object($resource) || !method_exists($resource, 'get')) {
-            return '';
-        }
-        $id = (int)$resource->get('id');
-        if ($id <= 0) {
-            return '';
-        }
-        $ctx = '';
-        if (is_object($this->modx->context) && method_exists($this->modx->context, 'get')) {
-            $ctx = (string)$this->modx->context->get('key');
-        }
-        $uri = (string)$resource->get('uri');
-        if ($uri === '') {
-            $uri = (string)$resource->get('alias');
-        }
-        $label = 'resource:#' . $id;
-        if ($ctx !== '' || $uri !== '') {
-            $label .= ' (' . $ctx . ':' . $uri . ')';
-        }
-
-        return $label;
-    }
-
-    /**
      * @param Exception $e
      * @param string $name
      * @param string $content
-     * @param string $label
+     * @param array $source
      * @param string $phase
      */
-    protected function logFenomError(Exception $e, $name, $content, $label, $phase)
+    protected function logFenomError(Exception $e, $name, $content, array $source, $phase)
     {
-        $message = $this->formatFenomError($e, $name, $content, $label, $phase);
+        $label = ErrorLog::label($source, $name);
+        $extra = [
+            'resource' => $this->currentResourceFacts(),
+        ];
+        $compiled = $this->compiledPathIfExists($name);
+        if ($compiled !== '') {
+            $extra['compiled'] = $compiled;
+        }
+        if ($phase === 'compile' && $this->modx->getOption('pdotools_fenom_save_on_errors')) {
+            $extra['sourceDump'] = rtrim((string)$this->pdoTools->config('cachePath'), '/') . '/error/' . $name;
+        }
+        $message = ErrorLog::format($e, $name, $content, $label, $phase, $extra);
         $this->modx->log(modX::LOG_LEVEL_ERROR, $message);
         $this->pdoTools->addTime($message);
     }
 
     /**
-     * @param Exception $e
-     * @param string $name
-     * @param string $content
-     * @param string $label
-     * @param string $phase
-     * @return string
+     * Current page facts for a secondary log line (no template id).
+     *
+     * @return array
      */
-    protected function formatFenomError(Exception $e, $name, $content, $label, $phase)
+    protected function currentResourceFacts()
     {
-        if ($label === '') {
-            $label = $name;
+        $resource = $this->modx->resource;
+        if (!is_object($resource) || !method_exists($resource, 'get')) {
+            return [];
         }
-        $raw = ErrorLog::replaceTemplateName($e->getMessage(), $name, $label);
-        $line = ErrorLog::extractLine($e);
-        $near = ErrorLog::extractNear($e->getMessage());
-        $excerpt = ErrorLog::excerpt($content, $line);
-        $hint = ErrorLog::modxHint($near . "\n" . $excerpt);
-
-        $lines = [
-            '[pdoTools][Fenom] ' . $phase . ' error in ' . $label,
+        $id = (int)$resource->get('id');
+        if ($id <= 0) {
+            return [];
+        }
+        $uri = (string)$resource->get('uri');
+        if ($uri === '') {
+            $uri = (string)$resource->get('alias');
+        }
+        $facts = [
+            'resourceId' => $id,
+            'resourceUri' => $uri,
         ];
-        $context = $this->formatResourceContext();
-        if ($context !== '' && strpos($label, 'resource:') !== 0) {
-            $lines[] = $context;
-        }
-        if ($name !== '' && $name !== $label) {
-            $lines[] = 'cache name: ' . $name;
-        }
-        $lines[] = $raw;
-        if ($excerpt !== '') {
-            $lines[] = $excerpt;
-        }
-        if ($hint !== '') {
-            $lines[] = $hint;
-        }
-        $compiled = $this->compiledPathIfExists($name);
-        if ($compiled !== '') {
-            $lines[] = 'compiled: ' . $compiled;
-        }
-        if ($phase === 'compile' && $this->modx->getOption('pdotools_fenom_save_on_errors')) {
-            $errorPath = rtrim((string)$this->pdoTools->config('cachePath'), '/');
-            $lines[] = 'source dump: ' . ErrorLog::relativePath($errorPath . '/error/' . $name);
+        if (is_object($this->modx->context) && method_exists($this->modx->context, 'get')) {
+            $facts['resourceContext'] = (string)$this->modx->context->get('key');
         }
 
-        return implode("\n", $lines);
+        return $facts;
     }
 
     /**
+     * Absolute path to a compiled template file, if it exists.
+     *
      * @param string $name
      * @return string
      */
@@ -383,7 +267,7 @@ class Fenom extends \Fenom
             return '';
         }
 
-        return ErrorLog::relativePath($file);
+        return $file;
     }
 
 
