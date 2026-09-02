@@ -3,39 +3,43 @@
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
-## [3.0.4-pl] - 2026-09-02
+## [3.1.0-pl] - 2026-09-02
 
 ### Added
 
-- PHPUnit 9.6 harness (Unit + Integration) and GitHub Actions on PHP 8.1, 8.2, 8.3, 8.4.
-- Codecov PR comments in informational mode, same as MODX Revolution.
-- [pdoTools3#11] [pdoMenu/pdoPage/pdoCrumbs] Template rows expose isFirst, isLast, isActive, hasChildren/hasChilds (menu also isHere, isStart, isCategory, isInner; page isSkip; crumbs isHome). Specialized tpl* chunks still work.
-- [#306] [pdoMenu] Added the "children" placeholder to tplInner.
-- [#355] [Fenom] Added type cast modifiers: boolval, doubleval, floatval, intval, strval.
-- [#356] [Fenom] Enabled the array_merge modifier by default.
-- [#358] [pdoTools] cachePath can be set via the "pdotools_cache_path" option.
-- [#392] [pdoPage] Snippet properties are available as placeholders in pagination templates.
-- Added GitHub Actions release workflow for 3.x transport packages.
-- [pdoTools3#21] [Fenom] Compile and runtime errors log the element name, resource, source excerpt, and cache path instead of a bare content hash.
+- PHPUnit 9.6 (Unit + Integration) and GitHub Actions on PHP 8.1, 8.2, 8.3, 8.4.
+- Codecov PR comments in informational mode, matching MODX Revolution.
+- [pdoTools3#11] [pdoMenu/pdoPage/pdoCrumbs] Row placeholders: isFirst, isLast, isActive; menu also hasChildren/hasChilds, isHere, isStart, isCategory, isInner; page isSkip; crumbs isHome. Existing tpl* chunks still apply when set.
+- [#306] [pdoMenu] "children" placeholder in tplInner.
+- [#355] [Fenom] Type cast modifiers: boolval, doubleval, floatval, intval, strval.
+- [#358] [pdoTools] System setting `pdotools_cache_path` for cachePath.
+- [#392] [pdoPage] Snippet properties as placeholders in pagination templates.
+- GitHub Actions release workflow for 3.x transport packages.
+- [pdoTools3#21] [Fenom] Compile and runtime errors name the element or resource, with source excerpt and cache path. Cache key stays the content hash.
 
 ### Changed
 
-- PHP requirement is now 8.1+. Unit and integration tests run on 8.1, 8.2, 8.3 and 8.4.
+- PHP requirement is 8.1+.
+- [#356] [Fenom] array_merge modifier enabled by default.
 - [Fenom] Skip json_decode() when pdotools_fenom_options is empty (PHP 8.3).
-- [pdoTools3#9] [pdoFetch] Extra categories use MiniShop3 (`MiniShop3\Model\msCategoryMember`). miniShop2 class names and `&disableMS2` are removed. Use `&disableMS3` to skip extra categories.
-- [#377] [pdoPage] Mark AJAX requests as connector mode via MODX_CONNECTOR_INCLUDED.
+- [pdoTools3#9] [pdoFetch] Extra categories use MiniShop3 (`MiniShop3\Model\msCategoryMember`).
+- [#377] [pdoPage] AJAX requests set MODX_CONNECTOR_INCLUDED.
+
+### Removed
+
+- [pdoTools3#9] [pdoFetch] miniShop2 class names and `&disableMS2`. Use `&disableMS3` to skip extra categories.
 
 ### Fixed
 
-- Skip the package vendor autoload when pdoTools classes are already loaded (PHPUnit + live MODX).
-- [#302] [pdoPage] Fixed button ajaxMode, hiding the more button when there are no results, and restoring it in force mode.
-- [#305] [pdoMenu] Fixed notices on missing class_key and content for weblinks.
-- [#349] [pdoTools] Cast config offset to integer for PHP 8.
-- [#351] [pdoPage] Fixed undefined variable $showLog.
-- [pdoTools3#16] [pdoCrumbs] Fixed [] operator on string &parents when showHome is enabled.
-- [#384] [pdoFetch] Fixed warning when preparing where/having condition for the log message.
-- [#384] [pdoPage] Fixed too strict page comparison in the paginator (integer vs float).
-- [pdoTools3#24] [pdoTools] Snippet result cache keys include the current context so web and extra contexts no longer share one entry.
+- Skip package vendor autoload when pdoTools classes are already loaded (PHPUnit + live MODX).
+- [#302] [pdoPage] button ajaxMode: hide more when there are no results; restore it in force mode.
+- [#305] [pdoMenu] Notices on missing class_key and content for weblinks.
+- [#349] [pdoTools] Cast config offset to int for PHP 8.
+- [#351] [pdoPage] Undefined variable $showLog.
+- [pdoTools3#16] [pdoCrumbs] [] on string &parents when showHome is enabled.
+- [#384] [pdoFetch] Warning when preparing where/having for the log message.
+- [#384] [pdoPage] Page compare too strict (int vs float from ceil).
+- [pdoTools3#24] [pdoTools] Snippet result cache keys include the current context.
 
 ## [3.0.3-pl2] - 2026-06-23
 
