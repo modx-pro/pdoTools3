@@ -160,19 +160,39 @@ if (empty($data)) {
     if (!empty($pageCount) && $pageCount > 1) {
         $pagination = [
             'first' => $page > 1 && !empty($tplPageFirst)
-                ? $paginator->makePageLink($url, 1, $tplPageFirst)
+                ? $paginator->makePageLink(
+                    $url,
+                    1,
+                    $tplPageFirst,
+                    \ModxPro\PdoTools\Support\PageItemState::placeholders(1, $page, $pageCount)
+                )
                 : '',
             'prev' => $page > 1 && !empty($tplPagePrev)
-                ? $paginator->makePageLink($url, $page - 1, $tplPagePrev)
+                ? $paginator->makePageLink(
+                    $url,
+                    $page - 1,
+                    $tplPagePrev,
+                    \ModxPro\PdoTools\Support\PageItemState::placeholders($page - 1, $page, $pageCount)
+                )
                 : '',
             'pages' => $pageLimit >= 7 && empty($disableModernPagination)
                 ? $paginator->buildModernPagination($page, $pageCount, $url)
                 : $paginator->buildClassicPagination($page, $pageCount, $url),
             'next' => $page < $pageCount && !empty($tplPageNext)
-                ? $paginator->makePageLink($url, $page + 1, $tplPageNext)
+                ? $paginator->makePageLink(
+                    $url,
+                    $page + 1,
+                    $tplPageNext,
+                    \ModxPro\PdoTools\Support\PageItemState::placeholders($page + 1, $page, $pageCount)
+                )
                 : '',
             'last' => $page < $pageCount && !empty($tplPageLast)
-                ? $paginator->makePageLink($url, $pageCount, $tplPageLast)
+                ? $paginator->makePageLink(
+                    $url,
+                    $pageCount,
+                    $tplPageLast,
+                    \ModxPro\PdoTools\Support\PageItemState::placeholders($pageCount, $page, $pageCount)
+                )
                 : '',
         ];
 

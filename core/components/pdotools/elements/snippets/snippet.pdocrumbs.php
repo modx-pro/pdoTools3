@@ -1,6 +1,7 @@
 <?php
 
 use ModxPro\PdoTools\Fetch;
+use ModxPro\PdoTools\Support\CrumbItemState;
 use MODX\Revolution\modResource;
 use MODX\Revolution\modWebLink;
 
@@ -158,6 +159,7 @@ if (!empty($rows) && is_array($rows)) {
         $rows = array_reverse($rows);
     }
 
+    $prepared = [];
     foreach ($rows as $row) {
         if (!empty($useWeblinkUrl) && $row['class_key'] === modWebLink::class) {
             $row['link'] = is_numeric(trim($row['content'], '[]~ '))
@@ -177,18 +179,33 @@ if (!empty($rows) && is_array($rows)) {
         }
 
         if (isset($return) && $return === 'data') {
-            $output[] = $row;
+            $prepared[] = $row;
             continue;
         }
         if ($row['id'] == $resource->id && empty($showCurrent)) {
             continue;
         } elseif ($row['id'] == $resource->id && !empty($tplCurrent)) {
-            $tpl = $tplCurrent;
+            $row['_tpl'] = $tplCurrent;
         } elseif ($row['id'] == $siteStart && !empty($tplHome)) {
-            $tpl = $tplHome;
+            $row['_tpl'] = $tplHome;
         } else {
-            $tpl = $pdoFetch->defineChunk($row);
+            $row['_tpl'] = $pdoFetch->defineChunk($row);
         }
+        $prepared[] = $row;
+    }
+
+    $total = count($prepared);
+    foreach ($prepared as $index => $row) {
+        $row = array_merge(
+            $row,
+            CrumbItemState::placeholders($row['id'], $resource->id, $siteStart, $index, $total)
+        );
+        if (isset($return) && $return === 'data') {
+            $output[] = $row;
+            continue;
+        }
+        $tpl = $row['_tpl'] ?? '';
+        unset($row['_tpl']);
         $output[] = empty($tpl)
             ? '<pre>' . $pdoFetch->getChunk('', $row) . '</pre>'
             : $pdoFetch->getChunk($tpl, $row, $fastMode);
