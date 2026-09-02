@@ -15,6 +15,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - [#358] [pdoTools] cachePath can be set via the "pdotools_cache_path" option.
 - [#392] [pdoPage] Snippet properties are available as placeholders in pagination templates.
 - Added GitHub Actions release workflow for 3.x transport packages.
+- [pdoTools3#21] [Fenom] Compile and runtime errors log the element name, resource, source excerpt, and cache path instead of a bare content hash.
 
 ### Changed
 

@@ -66,7 +66,10 @@ class Parser extends modParser
             }
             $_processingUncacheable = $this->_processingUncacheable;
             $this->_processingUncacheable = true;
-            $content = $this->pdoTools->getFenom()->process($content, $this->modx->placeholders);
+            $content = $this->pdoTools->getFenom()->process([
+                'content' => $content,
+                'sourceLabel' => $this->fenomSourceLabel(),
+            ], $this->modx->placeholders);
             $this->_processingUncacheable = $_processingUncacheable;
         }
 
@@ -277,6 +280,38 @@ class Parser extends modParser
         }
 
         return $output;
+    }
+
+    /**
+     * Label for Fenom page-parser errors. Does not become a cache key.
+     *
+     * @return string
+     */
+    protected function fenomSourceLabel()
+    {
+        $resource = $this->modx->resource;
+        if (!is_object($resource) || !method_exists($resource, 'get')) {
+            return 'resource';
+        }
+        $id = (int)$resource->get('id');
+        $ctx = '';
+        if (is_object($this->modx->context) && method_exists($this->modx->context, 'get')) {
+            $ctx = (string)$this->modx->context->get('key');
+        }
+        $uri = (string)$resource->get('uri');
+        if ($uri === '') {
+            $uri = (string)$resource->get('alias');
+        }
+        $label = 'resource:#' . $id;
+        if ($ctx !== '' || $uri !== '') {
+            $label .= ' (' . $ctx . ':' . $uri . ')';
+        }
+        $tplId = (int)$resource->get('template');
+        if ($tplId > 0) {
+            $label .= ', template:#' . $tplId;
+        }
+
+        return $label;
     }
 
 }
