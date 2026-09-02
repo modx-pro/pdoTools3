@@ -24,6 +24,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- Skip the package vendor autoload when pdoTools classes are already loaded (PHPUnit + live MODX).
 - [#302] [pdoPage] Fixed button ajaxMode, hiding the more button when there are no results, and restoring it in force mode.
 - [#305] [pdoMenu] Fixed notices on missing class_key and content for weblinks.
 - [#349] [pdoTools] Cast config offset to integer for PHP 8.
