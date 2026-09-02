@@ -61,6 +61,9 @@ jobs:
         working-directory: core/components/pdotools
         run: composer install --no-dev --no-interaction --prefer-dist
 
+      - name: Strip tests from package tree
+        run: php _build/build.prepare.php
+
       - name: Download MODX 3.2.4-pl
         run: |
           curl -fsSL -o modx.zip https://modx.s3.amazonaws.com/releases/3.2.4/modx-3.2.4-pl.zip
@@ -149,6 +152,19 @@ jobs:
                       print(data[:400], file=sys.stderr)
                       sys.exit(1)
                   print(f'OK: {name} contains an xPDOObjectVehicle marker')
+          # Runtime vendor must be present; test trees must not ship.
+          names = set(zf.namelist())
+          vendor_ok = any('/pdotools/vendor/autoload.php' in n or n.endswith('/pdotools/vendor/autoload.php') for n in names)
+          fenom_ok = any('/vendor/fenom/fenom/src/Fenom.php' in n for n in names)
+          tests_leak = [n for n in names if '/pdotools/tests/' in n or '/fenom/fenom/tests/' in n]
+          if not vendor_ok or not fenom_ok:
+              print('ERROR: vendor/autoload.php or Fenom.php missing from package', file=sys.stderr)
+              sys.exit(1)
+          if tests_leak:
+              print('ERROR: test files leaked into transport package:', file=sys.stderr)
+              print('\n'.join(tests_leak[:20]), file=sys.stderr)
+              sys.exit(1)
+          print('OK: vendor present, no tests/ in package')
           print('package ready:', zpath)
           PY
 

@@ -31,6 +31,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- Release transport package excludes pdoTools and Fenom test trees.
 - Skip package vendor autoload when pdoTools classes are already loaded (PHPUnit + live MODX).
 - [#302] [pdoPage] button ajaxMode: hide more when there are no results; restore it in force mode.
 - [#305] [pdoMenu] Notices on missing class_key and content for weblinks.
