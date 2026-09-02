@@ -25,4 +25,16 @@ class CoreToolsHarness extends CoreTools
     {
         return $this->getCacheKey($options);
     }
+
+    /**
+     * @param string $type
+     * @param string $binding
+     * @param object $element
+     * @param string $elementName
+     * @param string $sourceFile
+     */
+    public function publicBuildElementSourceLabel($type, $binding, $element, $elementName, $sourceFile): string
+    {
+        return $this->buildElementSourceLabel($type, $binding, $element, $elementName, $sourceFile);
+    }
 }
