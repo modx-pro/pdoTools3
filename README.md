@@ -1,6 +1,6 @@
 ## pdoTools
 
-pdoTools 3 is a set of everyday [MODX Revolution](https://modx.com/) 3 snippets plus a small library that keeps them fast. Queries are built with xPDO and run through PDO. Elements can live in the database or in files. Tickets and miniShop2 use it.
+pdoTools 3 is a set of everyday [MODX Revolution](https://modx.com/) 3 snippets plus a small library that keeps them fast. Queries are built with xPDO and run through PDO. Elements can live in the database or in files. Tickets and [MiniShop3](https://github.com/modx-pro/MiniShop3) use it.
 
 This branch requires **MODX 3** and **PHP 7.2+**. For MODX 2 use [pdoTools 2.x](https://github.com/modx-pro/pdoTools).
 

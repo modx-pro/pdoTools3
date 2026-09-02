@@ -79,7 +79,7 @@ $_lang['pdotools_prop_tplUp'] = 'Сhunk mit einem Link zum übergeordneten Dokum
 $_lang['pdotools_prop_tplNext'] = 'Сhunk mit einem Link zum nächsten Dokument.';
 
 $_lang['pdotools_prop_select'] = 'Kommaseparierte Liste von Tabellenspalten, die aus der Datenbank ausgelesen werden sollen (schränkt die Abfrage auf die angegebenen Felder ein). Sie können einen JSON-String mit einem Array angeben, z.B. {"modResource":"id,pagetitle,content"}.';
-$_lang['pdotools_prop_loadModels'] = 'Kommaseparierte Liste von zusätzlichen Komponenten, die für die Abfrage benötigt werden. Beispiel: "&loadModels=`ms2gallery,msearch2`".';
+$_lang['pdotools_prop_loadModels'] = 'Kommaseparierte Liste von zusätzlichen Komponenten, die für die Abfrage benötigt werden. Beispiel: "&loadModels=`minishop3,tickets`".';
 $_lang['pdotools_prop_direction'] = 'Textrichtung oder Breadcrumbs-Sortierung: von links nach rechts (ltr) oder von rechts nach links (rtl), z.B. für arabischen Text.';
 $_lang['pdotools_prop_id'] = 'ID der Ressource.';
 $_lang['pdotools_prop_field'] = 'Feld der Ressource.';
