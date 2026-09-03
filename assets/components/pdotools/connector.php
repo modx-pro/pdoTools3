@@ -1,8 +1,8 @@
 <?php
 
 require_once dirname(__FILE__, 4) . '/config.core.php';
-require_once MODX_CORE_PATH . 'model/modx/modx.class.php';
-$modx = new modX();
+require_once MODX_CORE_PATH . 'vendor/autoload.php';
+$modx = new MODX\Revolution\modX();
 $modx->initialize('web');
 $modx->services->add('error', new MODX\Revolution\Error\modError($modx));
 $modx->error = $modx->services->get('error');

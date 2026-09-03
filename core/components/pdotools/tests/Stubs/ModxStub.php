@@ -72,6 +72,8 @@ namespace MODX\Revolution {
             public $elementCache = [];
             public $queryTime = 0;
             public $executedQueries = 0;
+            /** @var object|null */
+            public $parser = null;
             /** @var string[] */
             public $logs = [];
 
@@ -149,6 +151,22 @@ namespace MODX\Revolution {
             public function getObject($class, $criteria = null)
             {
                 return null;
+            }
+
+            public function newQuery($class, $criteria = null)
+            {
+                return new class {
+                    public $stmt = null;
+
+                    public function select($columns): void
+                    {
+                    }
+
+                    public function prepare(): bool
+                    {
+                        return false;
+                    }
+                };
             }
 
             public function getAncestry($class)

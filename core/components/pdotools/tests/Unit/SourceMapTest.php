@@ -11,7 +11,7 @@ class SourceMapTest extends TestCase
     /**
      * @return list<array{0:string,1:string}>
      */
-    public function srcClassProvider(): array
+    public static function srcClassProvider(): array
     {
         return [
             ['ModxPro\\PdoTools\\CoreTools', 'src/CoreTools.php'],
@@ -22,11 +22,13 @@ class SourceMapTest extends TestCase
             ['ModxPro\\PdoTools\\Parsing\\Tag', 'src/Parsing/Tag.php'],
             ['ModxPro\\PdoTools\\Parsing\\Fenom\\Fenom', 'src/Parsing/Fenom/Fenom.php'],
             ['ModxPro\\PdoTools\\Parsing\\Fenom\\Providers\\Chunk', 'src/Parsing/Fenom/Providers/Chunk.php'],
+            ['ModxPro\\PdoTools\\Parsing\\Fenom\\Providers\\ElementProvider', 'src/Parsing/Fenom/Providers/ElementProvider.php'],
             ['ModxPro\\PdoTools\\Parsing\\Fenom\\Providers\\File', 'src/Parsing/Fenom/Providers/File.php'],
             ['ModxPro\\PdoTools\\Parsing\\Fenom\\Providers\\Template', 'src/Parsing/Fenom/Providers/Template.php'],
             ['ModxPro\\PdoTools\\Parsing\\Fenom\\Support\\App', 'src/Parsing/Fenom/Support/App.php'],
             ['ModxPro\\PdoTools\\Parsing\\Fenom\\Support\\Lexicon', 'src/Parsing/Fenom/Support/Lexicon.php'],
             ['ModxPro\\PdoTools\\Parsing\\Fenom\\Support\\CacheManager', 'src/Parsing/Fenom/Support/CacheManager.php'],
+            ['ModxPro\\PdoTools\\Support\\DateFormat', 'src/Support/DateFormat.php'],
         ];
     }
 
@@ -43,7 +45,7 @@ class SourceMapTest extends TestCase
     /**
      * @return list<array{0:string}>
      */
-    public function snippetFileProvider(): array
+    public static function snippetFileProvider(): array
     {
         $dir = dirname(__DIR__, 2) . '/elements/snippets';
         $out = [];

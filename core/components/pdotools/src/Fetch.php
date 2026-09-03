@@ -768,9 +768,9 @@ class Fetch extends CoreTools
                         }
                         // Support of MiniShop3 extra categories
                         $members = [];
-                        $resourceMap = $this->modx->classMap['MODX\\Revolution\\' . 'modResource'] ?? [];
-                        $ms3Category = 'MiniShop3\\Model\\' . 'msCategory';
-                        $ms3CategoryMember = 'MiniShop3\\Model\\' . 'msCategoryMember';
+                        $resourceMap = $this->modx->classMap[modResource::class] ?? [];
+                        $ms3Category = 'MiniShop3\\Model\\msCategory';
+                        $ms3CategoryMember = 'MiniShop3\\Model\\msCategoryMember';
                         if (empty($this->config['disableMS3']) && in_array($ms3Category, $resourceMap, true)) {
                             if (!empty($parents_in) || !empty($parents_out)) {
                                 $q = $this->modx->newQuery($ms3CategoryMember);

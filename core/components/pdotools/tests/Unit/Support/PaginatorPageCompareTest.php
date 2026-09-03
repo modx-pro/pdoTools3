@@ -14,7 +14,7 @@ class PaginatorPageCompareTest extends TestCase
     /**
      * @return list<array{0:int|float,1:int|float,2:bool}>
      */
-    public function lastPageProvider(): array
+    public static function lastPageProvider(): array
     {
         return [
             [2, 2, true],

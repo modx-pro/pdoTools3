@@ -33,7 +33,7 @@ $sources = [
 unset($root);
 
 /* override with your own defines here (see build.config.sample.php) */
-require_once MODX_CORE_PATH . 'model/modx/modx.class.php';
+require_once MODX_CORE_PATH . 'vendor/autoload.php';
 require_once $sources['build'] . '/includes/functions.php';
 
 $modx = new modX();
@@ -45,7 +45,7 @@ $modx->services->add('error', new modError($modx));
 $modx->error = $modx->services->get('error');
 
 $builder = new modPackageBuilder($modx);
-$builder->createPackage(PKG_NAME_LOWER, PKG_VERSION, PKG_RELEASE);
+$builder->createPackage(PKG_SIGNATURE, PKG_VERSION, PKG_RELEASE);
 $builder->registerNamespace(PKG_NAME_LOWER, false, true, '{core_path}components/' . PKG_NAME_LOWER . '/');
 $modx->log(modX::LOG_LEVEL_INFO, 'Created Transport Package and Namespace.');
 

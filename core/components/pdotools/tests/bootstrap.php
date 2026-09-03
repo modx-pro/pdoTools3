@@ -10,7 +10,6 @@ if (!is_file($vendor)) {
 
 require $vendor;
 
-// Vendor Fenom 2.12 still uses implicit nullable parameters.
 error_reporting(E_ALL & ~E_DEPRECATED);
 
 $tmp = __DIR__ . '/tmp';

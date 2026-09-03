@@ -187,4 +187,4 @@ $_lang['pdotools_prop_tplYear'] = 'Template for the year';
 $_lang['pdotools_prop_tplMonth'] = 'Template for the month';
 $_lang['pdotools_prop_tplDay'] = 'Template for the day';
 $_lang['pdotools_prop_dateField'] = 'The field of resource for obtaining document date: createdon, publishedon, or editedon.';
-$_lang['pdotools_prop_dateFormat'] = 'The date format for the function strftime()';
+$_lang['pdotools_prop_dateFormat'] = 'The date format for the function date()';

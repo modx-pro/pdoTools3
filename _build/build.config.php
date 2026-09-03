@@ -1,9 +1,11 @@
 <?php
 
-const PKG_NAME = 'pdoTools';
+const PKG_NAME = 'pdoTools3';
 const PKG_NAME_LOWER = 'pdotools';
+/** Transport package signature (zip name). Paths/settings stay PKG_NAME_LOWER. */
+const PKG_SIGNATURE = 'pdotools3';
 
-const PKG_VERSION = '3.1.0';
+const PKG_VERSION = '1.0.0';
 const PKG_RELEASE = 'pl';
 const PKG_AUTO_INSTALL = false;
 

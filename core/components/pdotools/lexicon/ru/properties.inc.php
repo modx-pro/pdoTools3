@@ -185,4 +185,4 @@ $_lang['pdotools_prop_tplYear'] = 'Шаблон для оформления го
 $_lang['pdotools_prop_tplMonth'] = 'Шаблон для оформления месяца';
 $_lang['pdotools_prop_tplDay'] = 'Шаблон для оформления дня';
 $_lang['pdotools_prop_dateField'] = 'Поле ресурса для получения даты документа: createdon, publishedon или editedon.';
-$_lang['pdotools_prop_dateFormat'] = 'Формат даты для функции strftime()';
+$_lang['pdotools_prop_dateFormat'] = 'Формат даты для функции date()';

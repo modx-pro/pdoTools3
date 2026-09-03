@@ -10,6 +10,7 @@ use ModxPro\PdoTools\Parsing\Fenom\Support\App;
 use ModxPro\PdoTools\Parsing\Fenom\Providers\Chunk;
 use ModxPro\PdoTools\Parsing\Fenom\Providers\File;
 use ModxPro\PdoTools\Parsing\Fenom\Providers\Template;
+use ModxPro\PdoTools\Support\DateFormat;
 use MODX\Revolution\modX;
 use MODX\Revolution\modUser;
 use MODX\Revolution\modResource;
@@ -105,18 +106,20 @@ class Fenom extends \Fenom
         /** @var \Fenom\Template $tpl */
         $source = is_array($chunk) ? $chunk : [];
         if (!$tpl = $this->pdoTools->getStore($name, 'fenom')) {
-            if (!empty($this->pdoTools->config('useFenomCache'))) {
-                $compileKey = 'pdotools/' . $name;
-                if (!$cache = $this->pdoTools->getExactCache($compileKey)) {
-                    if ($tpl = $this->_compileChunk($content, $name, $source)) {
-                        $this->pdoTools->setExactCache($compileKey, $tpl->getTemplateCode());
-                    }
-                } else {
-                    $cache = preg_replace('#^<\?php#', '', $cache);
-                    $tpl = eval($cache);
+            $useCache = !empty($this->pdoTools->config('useFenomCache'));
+            $file = rtrim((string)$this->_compile_dir, '/') . '/' . $this->getCompileName($name);
+            if ($useCache && is_file($file)) {
+                $fenom = $this;
+                $loaded = include $file;
+                if ($loaded instanceof Render) {
+                    $tpl = $loaded;
                 }
-            } else {
+            }
+            if (!$tpl) {
                 $tpl = $this->_compileChunk($content, $name, $source);
+                if ($tpl && $useCache) {
+                    @file_put_contents($file, $tpl->getTemplateCode());
+                }
             }
             if ($tpl) {
                 $this->pdoTools->setStore($name, $tpl, 'fenom');
@@ -147,15 +150,13 @@ class Fenom extends \Fenom
      *
      * @param string $dir directory to store compiled templates in
      *
-     * @return \Fenom
      * @throws LogicException
      */
-    public function setCompileDir($dir)
+    public function setCompileDir(string $dir): static
     {
         $dir = str_replace(MODX_CORE_PATH, '', $dir);
         $path = MODX_CORE_PATH;
         $tmp = explode('/', trim($dir, '/'));
-        // FIX: use Flysystem
         foreach ($tmp as $v) {
             if (!empty($v)) {
                 $path .= $v . '/';
@@ -447,7 +448,7 @@ class Fenom extends \Fenom
             return wordwrap($string, $width, $break, true);
         };
 
-        $this->_modifiers['fuzzydate'] = function ($date, $format = '%b %e') use ($modx) {
+        $this->_modifiers['fuzzydate'] = function ($date, $format = 'M j') use ($modx) {
             $output = '&mdash;';
 
             if (!empty($date)) {
@@ -458,12 +459,13 @@ class Fenom extends \Fenom
                 $time = !is_numeric($date)
                     ? strtotime($date)
                     : $date;
+                $format = DateFormat::toDate((string)$format);
                 if ($time >= strtotime('today')) {
-                    $output = $modx->lexicon('today_at', ['time' => strftime('%I:%M %p', $time)]);
+                    $output = $modx->lexicon('today_at', ['time' => date('h:i A', $time)]);
                 } elseif ($time >= strtotime('yesterday')) {
-                    $output = $modx->lexicon('yesterday_at', ['time' => strftime('%I:%M %p', $time)]);
+                    $output = $modx->lexicon('yesterday_at', ['time' => date('h:i A', $time)]);
                 } else {
-                    $output = strftime($format, $time);
+                    $output = date($format, $time);
                 }
             }
 
@@ -747,25 +749,30 @@ class Fenom extends \Fenom
 
 
     /**
-     * Modifier autoloader
+     * Resolve a modifier: registered / allowed first, then a MODX snippet of the same name.
      *
-     * @param string $name
-     * @param \Fenom\Template $template
-     *
-     * @return callable
+     * Do not call parent::getModifier(): Fenom::_loadModifier() requires a non-null Template,
+     * while compiled templates invoke getModifier($name) with null at runtime.
      */
-    protected function _loadModifier($name, $template)
+    public function getModifier(string $modifier, ?\Fenom\Template $template = null): ?callable
     {
+        if (isset($this->_modifiers[$modifier])) {
+            return $this->_modifiers[$modifier];
+        }
+        if ($this->isAllowedFunction($modifier)) {
+            return $modifier;
+        }
+
         $pdo = $this->pdoTools;
 
-        return function ($input, $options = null) use ($name, $pdo) {
-            $pdo->debugParserModifier($input, $name, $options);
-            $result = $pdo->runSnippet($name, [
+        return $this->_modifiers[$modifier] = function ($input, $options = null) use ($modifier, $pdo) {
+            $pdo->debugParserModifier($input, $modifier, $options);
+            $result = $pdo->runSnippet($modifier, [
                 'input' => $input,
                 'options' => $options,
                 'pdoTools' => $pdo,
             ]);
-            $pdo->debugParserModifier($input, $name, $options);
+            $pdo->debugParserModifier($input, $modifier, $options);
 
             return $result === false
                 ? $input
