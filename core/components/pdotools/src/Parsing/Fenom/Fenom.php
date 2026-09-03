@@ -10,6 +10,7 @@ use ModxPro\PdoTools\Parsing\Fenom\Support\App;
 use ModxPro\PdoTools\Parsing\Fenom\Providers\Chunk;
 use ModxPro\PdoTools\Parsing\Fenom\Providers\File;
 use ModxPro\PdoTools\Parsing\Fenom\Providers\Template;
+use ModxPro\PdoTools\Support\DateFormat;
 use MODX\Revolution\modX;
 use MODX\Revolution\modUser;
 use MODX\Revolution\modResource;
@@ -105,8 +106,21 @@ class Fenom extends \Fenom
         /** @var \Fenom\Template $tpl */
         $source = is_array($chunk) ? $chunk : [];
         if (!$tpl = $this->pdoTools->getStore($name, 'fenom')) {
-            // Native Fenom file cache is controlled by useFenomCache options in __construct.
-            $tpl = $this->_compileChunk($content, $name, $source);
+            $useCache = !empty($this->pdoTools->config('useFenomCache'));
+            $file = rtrim((string)$this->_compile_dir, '/') . '/' . $this->getCompileName($name);
+            if ($useCache && is_file($file)) {
+                $fenom = $this;
+                $loaded = include $file;
+                if ($loaded instanceof Render) {
+                    $tpl = $loaded;
+                }
+            }
+            if (!$tpl) {
+                $tpl = $this->_compileChunk($content, $name, $source);
+                if ($tpl && $useCache) {
+                    @file_put_contents($file, $tpl->getTemplateCode());
+                }
+            }
             if ($tpl) {
                 $this->pdoTools->setStore($name, $tpl, 'fenom');
             }
@@ -445,6 +459,7 @@ class Fenom extends \Fenom
                 $time = !is_numeric($date)
                     ? strtotime($date)
                     : $date;
+                $format = DateFormat::toDate((string)$format);
                 if ($time >= strtotime('today')) {
                     $output = $modx->lexicon('today_at', ['time' => date('h:i A', $time)]);
                 } elseif ($time >= strtotime('yesterday')) {
@@ -734,16 +749,18 @@ class Fenom extends \Fenom
 
 
     /**
-     * Resolve a modifier: Fenom builtins first, then a MODX snippet of the same name.
+     * Resolve a modifier: registered / allowed first, then a MODX snippet of the same name.
      *
-     * @param string $modifier
-     * @param \Fenom\Template|null $template
+     * Do not call parent::getModifier(): Fenom::_loadModifier() requires a non-null Template,
+     * while compiled templates invoke getModifier($name) with null at runtime.
      */
     public function getModifier(string $modifier, ?\Fenom\Template $template = null): ?callable
     {
-        $cb = parent::getModifier($modifier, $template);
-        if ($cb !== null) {
-            return $cb;
+        if (isset($this->_modifiers[$modifier])) {
+            return $this->_modifiers[$modifier];
+        }
+        if ($this->isAllowedFunction($modifier)) {
+            return $modifier;
         }
 
         $pdo = $this->pdoTools;

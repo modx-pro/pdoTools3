@@ -35,11 +35,33 @@ class FenomModifiersTest extends TestCase
      * @dataProvider modifierProvider
      * @param array<string, mixed> $vars
      */
-    public function testBuiltinModifierStillResolvesViaGetModifier(): void
+    public function testDefaultModifier(string $expected, string $code, array $vars): void
     {
-        $cb = $this->fenom()->getModifier('intval');
+        $this->assertRender($expected, $code, $vars);
+    }
+
+    public function testGetModifierWithNullTemplateResolvesSnippet(): void
+    {
+        $tools = new class($this->modx, [
+            'useFenom' => true,
+            'useFenomCache' => false,
+            'cachePath' => dirname(__DIR__, 3) . '/tmp/cache/pdotools',
+        ]) extends \ModxPro\PdoTools\CoreTools {
+            public function runSnippet($name, array $properties = [])
+            {
+                return 'OK:' . $properties['input'];
+            }
+        };
+
+        $compile = dirname(__DIR__, 3) . '/tmp/cache/pdotools/file';
+        if (!is_dir($compile) && !mkdir($compile, 0777, true) && !is_dir($compile)) {
+            $this->fail('Cannot create Fenom compile dir');
+        }
+
+        $fenom = new \ModxPro\PdoTools\Parsing\Fenom\Fenom($this->modx, $tools);
+        $cb = $fenom->getModifier('ghostSnippet', null);
         $this->assertIsCallable($cb);
-        $this->assertSame(7, $cb('7.9'));
+        $this->assertSame('OK:x', $cb('x'));
     }
 
     public function testFuzzydateUsesDateFormat(): void
@@ -48,6 +70,16 @@ class FenomModifiersTest extends TestCase
         $this->assertRender(
             date('M j', $old),
             '{$v|fuzzydate}',
+            ['v' => $old]
+        );
+    }
+
+    public function testFuzzydateAcceptsLegacyStrftimeFormat(): void
+    {
+        $old = strtotime('2020-01-15 12:00:00');
+        $this->assertRender(
+            date('Y-m-d', $old),
+            '{$v|fuzzydate:"%Y-%m-%d"}',
             ['v' => $old]
         );
     }

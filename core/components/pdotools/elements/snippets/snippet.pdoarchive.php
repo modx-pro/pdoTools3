@@ -1,6 +1,7 @@
 <?php
 
 use ModxPro\PdoTools\Fetch;
+use ModxPro\PdoTools\Support\DateFormat;
 use MODX\Revolution\modSnippet;
 use MODX\Revolution\modWebLink;
 
@@ -74,7 +75,7 @@ foreach ($tree as $year => $months) {
                 $resource['day'] = $day;
                 $resource['month'] = $month;
                 $resource['year'] = $year;
-                $resource['date'] = date($dateFormat, $resource[$dateField]);
+                $resource['date'] = date(DateFormat::toDate($dateFormat), $resource[$dateField]);
                 $resource['idx'] = $idx++;
                 $resource['menutitle'] = !empty($resource['menutitle'])
                     ? $resource['menutitle']

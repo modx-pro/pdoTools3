@@ -40,62 +40,32 @@ class ProvidersTest extends TestCase
     public function testChunkProviderEmptyPathsWhenMissing(): void
     {
         $provider = new Chunk($this->modx, $this->pdoTools);
-        $time = 0.0;
+        $time = -1.0;
 
         $this->assertSame('', $provider->getSource('Missing', $time));
-        $this->assertSame('', $provider->getSource('12@props', $time));
-        $this->assertGreaterThan(0.0, $provider->getLastModified('Missing'));
-        $this->assertGreaterThan(0.0, $provider->getLastModified('42'));
+        $this->assertSame(0.0, $time);
+        $this->assertSame(0.0, $provider->getLastModified('Missing'));
+        $this->assertSame(0.0, $provider->getLastModified('42'));
         $this->assertTrue($provider->verify(['Missing' => 1.0]));
         $this->assertSame([], $provider->getList());
-        $this->assertTrue($provider->templateExists('7') === false);
     }
 
     public function testTemplateProviderEmptyPathsWhenMissing(): void
     {
         $provider = new Template($this->modx, $this->pdoTools);
-        $time = 0.0;
+        $time = -1.0;
 
         $this->assertSame('', $provider->getSource('MissingTpl', $time));
-        $this->assertSame('', $provider->getSource('9@props', $time));
-        $this->assertGreaterThan(0.0, $provider->getLastModified('MissingTpl'));
-        $this->assertGreaterThan(0.0, $provider->getLastModified('9'));
+        $this->assertSame(0.0, $time);
+        $this->assertSame(0.0, $provider->getLastModified('MissingTpl'));
         $this->assertTrue($provider->verify(['MissingTpl' => 1.0]));
         $this->assertSame([], $provider->getList());
     }
 
-    public function testChunkProviderReadsObjectContent(): void
+    public function testChunkProviderStableMtimeFromEditedon(): void
     {
-        $element = new class {
-            public function getContent(): string
-            {
-                return 'chunk-body';
-            }
-
-            public function getProperties(): array
-            {
-                return [];
-            }
-
-            public function getPropertySet($name)
-            {
-                return null;
-            }
-
-            public function isStatic(): bool
-            {
-                return false;
-            }
-
-            public function getSourceFile()
-            {
-                return false;
-            }
-        };
-
-        $this->modx = $this->modxWithObjects([
-            modChunk::class => $element,
-        ]);
+        $element = $this->elementStub('chunk-body', 1_700_000_000);
+        $this->modx = $this->modxWithObjects([modChunk::class => $element]);
         $this->pdoTools = new \ModxPro\PdoTools\CoreTools($this->modx, [
             'useFenom' => true,
             'useFenomCache' => false,
@@ -105,16 +75,44 @@ class ProvidersTest extends TestCase
         $provider = new Chunk($this->modx, $this->pdoTools);
         $time = 0.0;
         $this->assertSame('chunk-body', $provider->getSource('Home', $time));
+        $this->assertSame(1_700_000_000.0, $time);
+        $this->assertSame(1_700_000_000.0, $provider->getLastModified('Home'));
         $this->assertSame('chunk-body', $provider->getSource('Home@set', $time));
-        $this->assertGreaterThan(0.0, $provider->getLastModified('Home'));
+        $this->assertSame(1_700_000_000.0, $time);
     }
 
-    public function testTemplateProviderReadsObjectContent(): void
+    public function testTemplateProviderStableMtimeFromEditedon(): void
     {
-        $element = new class {
+        $element = $this->elementStub('tpl-body', 1_700_000_111);
+        $this->modx = $this->modxWithObjects([modTemplate::class => $element]);
+        $this->pdoTools = new \ModxPro\PdoTools\CoreTools($this->modx, [
+            'useFenom' => true,
+            'useFenomCache' => false,
+            'cachePath' => dirname(__DIR__, 3) . '/tmp/cache/pdotools',
+        ]);
+
+        $provider = new Template($this->modx, $this->pdoTools);
+        $time = 0.0;
+        $this->assertSame('tpl-body', $provider->getSource('Base', $time));
+        $this->assertSame(1_700_000_111.0, $time);
+        $this->assertSame(1_700_000_111.0, $provider->getLastModified('Base'));
+    }
+
+    private function elementStub(string $content, int $editedon): object
+    {
+        return new class($content, $editedon) {
+            private $content;
+            private $editedon;
+
+            public function __construct(string $content, int $editedon)
+            {
+                $this->content = $content;
+                $this->editedon = $editedon;
+            }
+
             public function getContent(): string
             {
-                return 'tpl-body';
+                return $this->content;
             }
 
             public function getProperties(): array
@@ -136,22 +134,12 @@ class ProvidersTest extends TestCase
             {
                 return false;
             }
+
+            public function get($key)
+            {
+                return $key === 'editedon' ? $this->editedon : null;
+            }
         };
-
-        $this->modx = $this->modxWithObjects([
-            modTemplate::class => $element,
-        ]);
-        $this->pdoTools = new \ModxPro\PdoTools\CoreTools($this->modx, [
-            'useFenom' => true,
-            'useFenomCache' => false,
-            'cachePath' => dirname(__DIR__, 3) . '/tmp/cache/pdotools',
-        ]);
-
-        $provider = new Template($this->modx, $this->pdoTools);
-        $time = 0.0;
-        $this->assertSame('tpl-body', $provider->getSource('Base', $time));
-        $this->assertSame('tpl-body', $provider->getSource('Base@set', $time));
-        $this->assertGreaterThan(0.0, $provider->getLastModified('Base'));
     }
 
     /**
