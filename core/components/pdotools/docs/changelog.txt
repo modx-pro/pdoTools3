@@ -3,6 +3,32 @@
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
+## [1.0.0-pl] - 2026-09-03
+
+First release of the **pdoTools3** extra for MODX 3 (separate package signature `pdotools3`).
+Sites already on `pdoTools` 3.0–3.1.0 are not upgraded automatically: install pdoTools3 over the same
+`core/components/pdotools` paths, then remove the old package record. Snippets, settings (`pdotools_*`),
+and PHP namespace stay the same.
+
+### Added
+
+- [#397] Fenom 3.1.0 (PHP 8.2+). Snippet-as-modifier fallback via `getModifier()`.
+- PHPUnit 10 unit suite; CI on PHP 8.2, 8.3, 8.4, 8.5.
+
+### Changed
+
+- Extra signature is `pdotools3`; display name `pdoTools3`. Component paths remain `pdotools`.
+- PHP requirement is 8.2+.
+- `useFenomCache` drives Fenom native file-cache options only. The old MODX compile-cache path for Fenom templates is removed.
+- `strftime()` replaced with `date()` in Fenom `fuzzydate` and pdoArchive (PHP 8.4+).
+- String class names (`modResource`, `modTemplateVar`) replaced with FQN `::class`.
+- pdoPage connector and transport build bootstrap via `vendor/autoload.php`.
+- Chunk/Template Fenom providers implement typed Fenom 3 `ProviderInterface`.
+
+### Notes
+
+- `&loadModels` still uses xPDO `addPackage()` under `components/<name>/model/`. PSR-4 extras (e.g. MiniShop3) do not need it.
+
 ## [3.1.0-pl] - 2026-09-02
 
 ### Added

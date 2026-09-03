@@ -105,19 +105,8 @@ class Fenom extends \Fenom
         /** @var \Fenom\Template $tpl */
         $source = is_array($chunk) ? $chunk : [];
         if (!$tpl = $this->pdoTools->getStore($name, 'fenom')) {
-            if (!empty($this->pdoTools->config('useFenomCache'))) {
-                $compileKey = 'pdotools/' . $name;
-                if (!$cache = $this->pdoTools->getExactCache($compileKey)) {
-                    if ($tpl = $this->_compileChunk($content, $name, $source)) {
-                        $this->pdoTools->setExactCache($compileKey, $tpl->getTemplateCode());
-                    }
-                } else {
-                    $cache = preg_replace('#^<\?php#', '', $cache);
-                    $tpl = eval($cache);
-                }
-            } else {
-                $tpl = $this->_compileChunk($content, $name, $source);
-            }
+            // Native Fenom file cache is controlled by useFenomCache options in __construct.
+            $tpl = $this->_compileChunk($content, $name, $source);
             if ($tpl) {
                 $this->pdoTools->setStore($name, $tpl, 'fenom');
             }
@@ -147,15 +136,13 @@ class Fenom extends \Fenom
      *
      * @param string $dir directory to store compiled templates in
      *
-     * @return \Fenom
      * @throws LogicException
      */
-    public function setCompileDir($dir)
+    public function setCompileDir(string $dir): static
     {
         $dir = str_replace(MODX_CORE_PATH, '', $dir);
         $path = MODX_CORE_PATH;
         $tmp = explode('/', trim($dir, '/'));
-        // FIX: use Flysystem
         foreach ($tmp as $v) {
             if (!empty($v)) {
                 $path .= $v . '/';
@@ -447,7 +434,7 @@ class Fenom extends \Fenom
             return wordwrap($string, $width, $break, true);
         };
 
-        $this->_modifiers['fuzzydate'] = function ($date, $format = '%b %e') use ($modx) {
+        $this->_modifiers['fuzzydate'] = function ($date, $format = 'M j') use ($modx) {
             $output = '&mdash;';
 
             if (!empty($date)) {
@@ -459,11 +446,11 @@ class Fenom extends \Fenom
                     ? strtotime($date)
                     : $date;
                 if ($time >= strtotime('today')) {
-                    $output = $modx->lexicon('today_at', ['time' => strftime('%I:%M %p', $time)]);
+                    $output = $modx->lexicon('today_at', ['time' => date('h:i A', $time)]);
                 } elseif ($time >= strtotime('yesterday')) {
-                    $output = $modx->lexicon('yesterday_at', ['time' => strftime('%I:%M %p', $time)]);
+                    $output = $modx->lexicon('yesterday_at', ['time' => date('h:i A', $time)]);
                 } else {
-                    $output = strftime($format, $time);
+                    $output = date($format, $time);
                 }
             }
 
@@ -747,25 +734,28 @@ class Fenom extends \Fenom
 
 
     /**
-     * Modifier autoloader
+     * Resolve a modifier: Fenom builtins first, then a MODX snippet of the same name.
      *
-     * @param string $name
-     * @param \Fenom\Template $template
-     *
-     * @return callable
+     * @param string $modifier
+     * @param \Fenom\Template|null $template
      */
-    protected function _loadModifier($name, $template)
+    public function getModifier(string $modifier, ?\Fenom\Template $template = null): ?callable
     {
+        $cb = parent::getModifier($modifier, $template);
+        if ($cb !== null) {
+            return $cb;
+        }
+
         $pdo = $this->pdoTools;
 
-        return function ($input, $options = null) use ($name, $pdo) {
-            $pdo->debugParserModifier($input, $name, $options);
-            $result = $pdo->runSnippet($name, [
+        return $this->_modifiers[$modifier] = function ($input, $options = null) use ($modifier, $pdo) {
+            $pdo->debugParserModifier($input, $modifier, $options);
+            $result = $pdo->runSnippet($modifier, [
                 'input' => $input,
                 'options' => $options,
                 'pdoTools' => $pdo,
             ]);
-            $pdo->debugParserModifier($input, $name, $options);
+            $pdo->debugParserModifier($input, $modifier, $options);
 
             return $result === false
                 ? $input

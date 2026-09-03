@@ -11,7 +11,7 @@ class SourceMapTest extends TestCase
     /**
      * @return list<array{0:string,1:string}>
      */
-    public function srcClassProvider(): array
+    public static function srcClassProvider(): array
     {
         return [
             ['ModxPro\\PdoTools\\CoreTools', 'src/CoreTools.php'],
@@ -43,7 +43,7 @@ class SourceMapTest extends TestCase
     /**
      * @return list<array{0:string}>
      */
-    public function snippetFileProvider(): array
+    public static function snippetFileProvider(): array
     {
         $dir = dirname(__DIR__, 2) . '/elements/snippets';
         $out = [];

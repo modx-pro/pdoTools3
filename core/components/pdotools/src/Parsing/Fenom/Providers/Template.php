@@ -3,10 +3,8 @@
 namespace ModxPro\PdoTools\Parsing\Fenom\Providers;
 
 use PDO;
-use Iterator;
 use Fenom\ProviderInterface;
 use MODX\Revolution\modX;
-use MODX\Revolution\modChunk;
 use MODX\Revolution\modTemplate;
 use ModxPro\PdoTools\CoreTools;
 
@@ -27,10 +25,8 @@ class Template implements ProviderInterface
 
     /**
      * @param string $tpl
-     *
-     * @return bool
      */
-    public function templateExists($tpl)
+    public function templateExists(string $tpl): bool
     {
         $c = is_numeric($tpl) && $tpl > 0
             ? $tpl
@@ -42,11 +38,9 @@ class Template implements ProviderInterface
 
     /**
      * @param string $tpl
-     * @param int $time
-     *
-     * @return string
+     * @param float $time
      */
-    public function getSource($tpl, &$time)
+    public function getSource(string $tpl, float &$time): string
     {
         $content = '';
         if ($pos = strpos($tpl, '@')) {
@@ -56,7 +50,7 @@ class Template implements ProviderInterface
         $c = is_numeric($tpl) && $tpl > 0
             ? $tpl
             : ['templatename' => $tpl];
-        /** @var modChunk $chunk */
+        /** @var modTemplate $element */
         if ($element = $this->modx->getObject(modTemplate::class, $c)) {
             $content = $element->getContent();
 
@@ -69,7 +63,7 @@ class Template implements ProviderInterface
                 $properties = $element->getProperties();
             }
             if (!empty($content) && !empty($properties)) {
-                $useFenom = $this->pdoTools->getConfig('useFenom');
+                $useFenom = $this->pdoTools->config('useFenom');
                 $this->pdoTools->config(['useFenom' => false]);
 
                 $content = $this->pdoTools->parseChunk('@INLINE ' . $content, $properties);
@@ -83,22 +77,20 @@ class Template implements ProviderInterface
 
     /**
      * @param string $tpl
-     *
-     * @return int
      */
-    public function getLastModified($tpl)
+    public function getLastModified(string $tpl): float
     {
         $c = is_numeric($tpl) && $tpl > 0
             ? $tpl
             : ['templatename' => $tpl];
-        /** @var modChunk $chunk */
+        /** @var modTemplate $chunk */
         if ($chunk = $this->modx->getObject(modTemplate::class, $c)) {
             if ($chunk->isStatic() && $file = $chunk->getSourceFile()) {
-                return filemtime($file);
+                return (float)filemtime($file);
             }
         }
 
-        return time();
+        return (float)time();
     }
 
 
@@ -106,10 +98,8 @@ class Template implements ProviderInterface
      * Verify templates (check mtime)
      *
      * @param array $templates [template_name => modified, ...] By conversation, you may trust the template's name
-     *
-     * @return bool if true - all templates are valid else some templates are invalid
      */
-    public function verify(array $templates)
+    public function verify(array $templates): bool
     {
         return true;
     }
@@ -117,9 +107,8 @@ class Template implements ProviderInterface
 
     /**
      * Get all names of template from provider
-     * @return array|Iterator
      */
-    public function getList()
+    public function getList(): iterable
     {
         $c = $this->modx->newQuery(modTemplate::class);
         $c->select('templatename');

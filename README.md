@@ -1,12 +1,14 @@
-## pdoTools
+## pdoTools3
 
 [![Tests](https://github.com/modx-pro/pdoTools3/actions/workflows/phpunit.yml/badge.svg)](https://github.com/modx-pro/pdoTools3/actions/workflows/phpunit.yml)
-[![PHP](https://img.shields.io/badge/php-8.1%20%7C%208.2%20%7C%208.3%20%7C%208.4-777BB4)](https://github.com/modx-pro/pdoTools3/actions/workflows/phpunit.yml)
+[![PHP](https://img.shields.io/badge/php-8.2%20%7C%208.3%20%7C%208.4%20%7C%208.5-777BB4)](https://github.com/modx-pro/pdoTools3/actions/workflows/phpunit.yml)
 [![Coverage](https://img.shields.io/codecov/c/github/modx-pro/pdoTools3)](https://codecov.io/gh/modx-pro/pdoTools3)
 
-pdoTools 3 is a set of everyday [MODX Revolution](https://modx.com/) 3 snippets plus a small library that keeps them fast. Queries are built with xPDO and run through PDO. Elements can live in the database or in files. [MiniShop3](https://github.com/modx-pro/MiniShop3) use it.
+pdoTools3 is a set of everyday [MODX Revolution](https://modx.com/) 3 snippets plus a small library that keeps them fast. Queries are built with xPDO and run through PDO. Elements can live in the database or in files. [MiniShop3](https://github.com/modx-pro/MiniShop3) use it.
 
-This branch requires **MODX 3** and **PHP 8.1+**. For MODX 2 use [pdoTools 2.x](https://github.com/modx-pro/pdoTools).
+Requires **MODX 3** and **PHP 8.2+**. For MODX 2 use [pdoTools](https://github.com/modx-pro/pdoTools).
+
+Package signature is `pdotools3` (transport `pdotools3-1.0.0-pl.transport.zip`). Component paths, snippets (`pdoResources`, …), and settings (`pdotools_*`) stay under `pdotools`. Sites on older `pdoTools` 3.x install this package over the same files, then remove the old package record in Package Manager.
 
 **Documentation:** [docs.modx.pro/components/pdotools](https://docs.modx.pro/components/pdotools/)
 

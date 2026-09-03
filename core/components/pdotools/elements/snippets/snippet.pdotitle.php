@@ -44,7 +44,7 @@ $modx->lexicon->load('pdotools:pdopage');
 /** @var modResource $resource */
 $resource = ($id == $modx->resource->id)
     ? $modx->resource
-    : $modx->getObject('modResource', $id);
+    : $modx->getObject(modResource::class, $id);
 if (!$resource) {
     return '';
 }

@@ -949,7 +949,7 @@ class CoreTools
 
                     /** @var modTemplateVar $templateVar */
                     if (!$templateVar = $this->getStore($tv, 'tv')) {
-                        if ($templateVar = $this->modx->getObject('modTemplateVar', ['name' => $tv])) {
+                        if ($templateVar = $this->modx->getObject(modTemplateVar::class, ['name' => $tv])) {
                             $sourceCache = isset($prepareTypes[$templateVar->type])
                                 ? $templateVar->getSourceCache($this->modx->context->get('key'))
                                 : null;

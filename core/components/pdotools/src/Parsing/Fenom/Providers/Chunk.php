@@ -3,7 +3,6 @@
 namespace ModxPro\PdoTools\Parsing\Fenom\Providers;
 
 use PDO;
-use Iterator;
 use Fenom\ProviderInterface;
 use MODX\Revolution\modChunk;
 use MODX\Revolution\modX;
@@ -26,10 +25,8 @@ class Chunk implements ProviderInterface
 
     /**
      * @param string $tpl
-     *
-     * @return bool
      */
-    public function templateExists($tpl)
+    public function templateExists(string $tpl): bool
     {
         $c = is_numeric($tpl) && $tpl > 0
             ? $tpl
@@ -41,11 +38,9 @@ class Chunk implements ProviderInterface
 
     /**
      * @param string $tpl
-     * @param int $time
-     *
-     * @return string
+     * @param float $time
      */
-    public function getSource($tpl, &$time)
+    public function getSource(string $tpl, float &$time): string
     {
         $content = '';
         if ($pos = strpos($tpl, '@')) {
@@ -82,10 +77,8 @@ class Chunk implements ProviderInterface
 
     /**
      * @param string $tpl
-     *
-     * @return int
      */
-    public function getLastModified($tpl)
+    public function getLastModified(string $tpl): float
     {
         $c = is_numeric($tpl) && $tpl > 0
             ? $tpl
@@ -93,10 +86,10 @@ class Chunk implements ProviderInterface
 
         /** @var modChunk $chunk */
         if (($chunk = $this->modx->getObject(modChunk::class, $c)) && $chunk->isStatic() && $file = $chunk->getSourceFile()) {
-            return filemtime($file);
+            return (float)filemtime($file);
         }
 
-        return time();
+        return (float)time();
     }
 
 
@@ -104,10 +97,8 @@ class Chunk implements ProviderInterface
      * Verify templates (check mtime)
      *
      * @param array $templates [template_name => modified, ...] By conversation, you may trust the template's name
-     *
-     * @return bool if true - all templates are valid else some templates are invalid
      */
-    public function verify(array $templates)
+    public function verify(array $templates): bool
     {
         return true;
     }
@@ -115,9 +106,8 @@ class Chunk implements ProviderInterface
 
     /**
      * Get all names of template from provider
-     * @return array
      */
-    public function getList()
+    public function getList(): iterable
     {
         $c = $this->modx->newQuery(modChunk::class);
         $c->select('name');

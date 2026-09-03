@@ -74,7 +74,7 @@ foreach ($tree as $year => $months) {
                 $resource['day'] = $day;
                 $resource['month'] = $month;
                 $resource['year'] = $year;
-                $resource['date'] = strftime($dateFormat, $resource[$dateField]);
+                $resource['date'] = date($dateFormat, $resource[$dateField]);
                 $resource['idx'] = $idx++;
                 $resource['menutitle'] = !empty($resource['menutitle'])
                     ? $resource['menutitle']

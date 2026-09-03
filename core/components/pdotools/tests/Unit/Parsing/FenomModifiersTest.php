@@ -13,7 +13,7 @@ class FenomModifiersTest extends TestCase
      *
      * @return array<string, array{0:string,1:string,2:array<string, mixed>}>
      */
-    public function modifierProvider(): array
+    public static function modifierProvider(): array
     {
         return [
             'intval' => ['42', '{$v|intval}', ['v' => '42.8']],

@@ -164,7 +164,7 @@ class Parser extends modParser
                     if (is_numeric($tmp[0])) {
                         /** @var modResource $resource */
                         if (!$resource = $this->pdoTools->getStore($tmp[0], 'resource')) {
-                            $resource = $this->modx->getObject('modResource', ['id' => $tmp[0]]);
+                            $resource = $this->modx->getObject(modResource::class, ['id' => $tmp[0]]);
                             $this->pdoTools->setStore($tmp[0], $resource, 'resource');
                         }
                         $output = '';

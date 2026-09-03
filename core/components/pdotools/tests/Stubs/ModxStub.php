@@ -72,6 +72,8 @@ namespace MODX\Revolution {
             public $elementCache = [];
             public $queryTime = 0;
             public $executedQueries = 0;
+            /** @var object|null */
+            public $parser = null;
             /** @var string[] */
             public $logs = [];
 

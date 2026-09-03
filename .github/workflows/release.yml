@@ -32,7 +32,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.1"
+          php-version: "8.2"
           extensions: pdo_mysql, mysqli, gd, zip, json, xml, mbstring, curl, tokenizer
           coverage: none
           tools: composer
@@ -123,12 +123,12 @@ jobs:
       - name: Collect transport package
         run: |
           mkdir -p _packages
-          find modx/core/packages -name 'pdotools-*.transport.zip' -exec cp -t _packages {} +
+          find modx/core/packages -name 'pdotools3-*.transport.zip' -exec cp -t _packages {} +
           ls -la _packages/
-          test -n "$(ls _packages/pdotools-*.transport.zip 2>/dev/null)"
+          test -n "$(ls _packages/pdotools3-*.transport.zip 2>/dev/null)"
           python3 - <<'PY'
           import glob, sys, zipfile
-          zpath = glob.glob('_packages/pdotools-*.transport.zip')[0]
+          zpath = glob.glob('_packages/pdotools3-*.transport.zip')[0]
           # MODX 3 may serialize the FQN with single or double backslashes;
           # older builds used underscores. Any of these means vehicles are present.
           needles = (
