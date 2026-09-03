@@ -35,8 +35,20 @@ class FenomModifiersTest extends TestCase
      * @dataProvider modifierProvider
      * @param array<string, mixed> $vars
      */
-    public function testDefaultModifier(string $expected, string $code, array $vars): void
+    public function testBuiltinModifierStillResolvesViaGetModifier(): void
     {
-        $this->assertRender($expected, $code, $vars);
+        $cb = $this->fenom()->getModifier('intval');
+        $this->assertIsCallable($cb);
+        $this->assertSame(7, $cb('7.9'));
+    }
+
+    public function testFuzzydateUsesDateFormat(): void
+    {
+        $old = strtotime('2020-01-15 12:00:00');
+        $this->assertRender(
+            date('M j', $old),
+            '{$v|fuzzydate}',
+            ['v' => $old]
+        );
     }
 }

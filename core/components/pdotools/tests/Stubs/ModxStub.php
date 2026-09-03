@@ -153,6 +153,22 @@ namespace MODX\Revolution {
                 return null;
             }
 
+            public function newQuery($class, $criteria = null)
+            {
+                return new class {
+                    public $stmt = null;
+
+                    public function select($columns): void
+                    {
+                    }
+
+                    public function prepare(): bool
+                    {
+                        return false;
+                    }
+                };
+            }
+
             public function getAncestry($class)
             {
                 return [$class];
